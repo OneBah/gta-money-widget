@@ -206,13 +206,10 @@
       let val = snapshot.val();
       let needsUpdate = false;
 
-      // --- АВТОМАТИЧЕСКАЯ МИГРАЦИЯ ДАННЫХ ---
       if (typeof val === 'number') {
-        // Если в базе лежит просто число, конвертируем в объект
         val = { money: val, clickLvl: 1, autoLvl: 0 };
         needsUpdate = true;
       } else if (!val || typeof val.money !== 'number') {
-        // Если пусто или мусор
         val = { money: 0, clickLvl: 1, autoLvl: 0 };
         needsUpdate = true;
       }
@@ -220,7 +217,6 @@
       if (typeof val.clickLvl !== 'number') { val.clickLvl = 1; needsUpdate = true; }
       if (typeof val.autoLvl !== 'number') { val.autoLvl = 0; needsUpdate = true; }
       
-      // Перезаписываем в базу, если формат был старый
       if (needsUpdate) {
         set(ref(db, `scores/${currentUser}`), val);
       }
@@ -259,7 +255,6 @@
     document.getElementById('autoCostText').textContent = getAutoCost(myData.autoLvl);
   }
 
-  // --- ПОКУПКА АПГРЕЙДОВ (ИСПРАВЛЕНО) ---
   window.buyClickUpgrade = function() {
     const cost = getClickCost(myData.clickLvl);
     if (myData.money < cost) return;
@@ -290,6 +285,7 @@
     }).catch(e => console.log("Ошибка покупки:", e));
   };
 
+  // --- АВТОКЛИКЕР С ВИЗУАЛЬНЫМ ЭФФЕКТОМ ---
   function startAutoIncome() {
     setInterval(() => {
       if (!currentUser || myData.autoLvl <= 0) return;
@@ -301,6 +297,9 @@
       
       updateHUD();
       
+      // Запускаем визуальный эффект, чтобы было видно, что бизнес капает
+      triggerAutoEffect(income);
+
       clearTimeout(window.autoSaveTimeout);
       window.autoSaveTimeout = setTimeout(() => {
         if (pendingMoney > 0) {
@@ -317,7 +316,49 @@
     }, 1000);
   }
 
-  // --- ОГРАБЛЕНИЕ ---
+  // Функция визуального эффекта от автокликера
+  function triggerAutoEffect(amount) {
+    const x = window.innerWidth / 2 + rand(-100, 100);
+    const y = window.innerHeight / 2 + rand(-50, 50);
+
+    // Текст +$ (сделан чуть меньше обычного, чтобы не перекрывать клики)
+    const el = document.createElement('div');
+    el.className = 'txt'; el.textContent = `+$${amount}`;
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    el.style.fontSize = '32px'; 
+    el.style.opacity = '0.8';
+    fx.appendChild(el);
+
+    const vx = rand(-20, 20), vy = rand(-120, -60), dur = 1200, start = performance.now();
+    (function step(now) {
+      const t = Math.min((now - start) / dur, 1), dt = (now - start) / 1000;
+      const dx = vx * dt;
+      const dy = vy * dt + 60 * dt * dt;
+      el.style.transform = `translate(${dx}px, ${dy}px) scale(${t < 0.1 ? 1 + t * 2 : 1.2 - t * 0.2})`;
+      el.style.opacity = t > 0.5 ? 0.8 - (t - 0.5) / 0.5 : 0.8;
+      t < 1 ? requestAnimationFrame(step) : el.remove();
+    })(start);
+
+    // Пара купюр для антуража
+    for(let i = 0; i < 3; i++) {
+      const b = document.createElement('div');
+      b.className = 'bill-fly'; b.textContent = '$';
+      b.style.left = x + 'px'; b.style.top = y + 'px';
+      fx.appendChild(b);
+      const angle = rand(-Math.PI * 0.8, -Math.PI * 0.2), speed = rand(100, 200);
+      const bvx = Math.cos(angle) * speed, bvy = Math.sin(angle) * speed;
+      const rot = rand(-360, 360), bDur = rand(800, 1200), bStart = performance.now();
+      (function step(now) {
+        const t = Math.min((now - bStart) / bDur, 1), dt = (now - bStart) / 1000;
+        const dx = bvx * dt * (1 - 0.5 * t);
+        const dy = bvy * dt + 250 * dt * dt;
+        b.style.transform = `translate(${dx}px, ${dy}px) rotate(${rot * t}deg)`;
+        b.style.opacity = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
+        t < 1 ? requestAnimationFrame(step) : b.remove();
+      })(bStart);
+    }
+  }
+
   window.attackUser = async function(targetName) {
     if (targetName === currentUser) return;
     const now = Date.now();
@@ -329,7 +370,6 @@
       let stolenAmount = 0;
 
       await runTransaction(targetRef, (targetData) => {
-        // Поддержка старого формата (если там просто число)
         if (typeof targetData === 'number') {
            targetData = { money: targetData, clickLvl: 1, autoLvl: 0 };
         }
@@ -356,7 +396,6 @@
     }
   };
 
-  // --- ТАБЛИЦА ЛИДЕРОВ (ИСПРАВЛЕНО) ---
   function listenToLeaderboard() {
     onValue(ref(db, 'scores'), (snapshot) => {
       const data = snapshot.val();
@@ -364,7 +403,6 @@
       lbList.innerHTML = '';
       if (!data) return;
 
-      // Поддержка обоих форматов (старого числа и нового объекта)
       const sorted = Object.entries(data)
         .map(([name, val]) => {
           if (typeof val === 'number') return { name, money: val };
@@ -404,7 +442,6 @@
     }
   }
 
-  // --- ЭФФЕКТЫ ---
   function triggerRobberyEffect(amount) {
     document.body.classList.add('attacked');
     setTimeout(() => document.body.classList.remove('attacked'), 500);
@@ -521,13 +558,11 @@
     
     const gain = getClickPower(myData.clickLvl);
     
-    // Локальное обновление
     myData.money += gain;
     previousMoney = myData.money;
     pendingMoney += gain;
     updateHUD();
     
-    // Отправка в базу
     clearTimeout(window.saveScoreTimeout);
     window.saveScoreTimeout = setTimeout(() => {
       if (pendingMoney > 0) {
@@ -546,11 +581,9 @@
     spawnSparks(x, y);
   }
 
-  // --- УПРАВЛЕНИЕ ---
   let lastX = 0, lastY = 0;
 
   document.body.addEventListener('pointerdown', (e) => {
-    // Исключаем клики по меню и магазину
     if (!currentUser || e.target.closest('.leaderboard') || e.target.closest('.upgrade-panel')) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return; 
 
