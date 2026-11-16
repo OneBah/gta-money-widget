@@ -2,20 +2,29 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>GTA Money Clicker</title>
+<title>GTA Money Clicker - Heist</title>
 <style>
   * { box-sizing: border-box; }
   body { 
     margin: 0; height: 100vh; overflow: hidden; background: #0d0618; 
     font-family: 'Trebuchet MS', sans-serif; color: white;
     cursor: crosshair; user-select: none; touch-action: none;
+    transition: background 0.2s;
+  }
+  
+  /* Анимация получения урона */
+  body.attacked { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; background: #3a0a0a; }
+  @keyframes shake {
+    10%, 90% { transform: translate3d(-2px, 0, 0); }
+    20%, 80% { transform: translate3d(4px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
+    40%, 60% { transform: translate3d(8px, 0, 0); }
   }
 
   /* --- ЛОГИН --- */
   .login-screen {
     position: absolute; inset: 0; background: rgba(13, 6, 24, 0.95);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    z-index: 100;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
   }
   .login-box {
     background: #1a0b2e; padding: 40px; border-radius: 15px; 
@@ -42,14 +51,26 @@
   
   .leaderboard {
     position: absolute; top: 20px; right: 20px; z-index: 10;
-    background: rgba(26, 11, 46, 0.9); padding: 15px 25px; border-radius: 10px;
-    border: 2px solid #4DB84B; min-width: 200px;
+    background: rgba(26, 11, 46, 0.9); padding: 15px; border-radius: 10px;
+    border: 2px solid #4DB84B; min-width: 250px;
   }
   .leaderboard h3 { margin: 0 0 10px 0; text-align: center; color: #4DB84B; font-family: Impact, sans-serif; letter-spacing: 1px; border-bottom: 1px solid #333; padding-bottom: 5px;}
-  .lb-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 16px; }
+  
+  /* Кликабельные элементы топа */
+  .lb-item { 
+    display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 16px; 
+    padding: 5px 8px; border-radius: 5px; transition: background 0.2s;
+  }
+  .lb-item:not(.me) { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="%23ff3333" d="M12 2L2 22h20L12 2z"/></svg>') 12 12, crosshair; } /* Курсор прицела */
+  .lb-item:not(.me):hover { background: rgba(255, 51, 51, 0.3); transform: scale(1.02); }
+  
+  .lb-item.me { color: #4DB84B; font-weight: bold; border: 1px solid #4DB84B; background: rgba(77, 184, 75, 0.1); cursor: default; }
+  
   .lb-item.top1 { color: #ffd700; font-weight: bold; font-size: 18px; }
   .lb-item.top2 { color: #c0c0c0; font-weight: bold; }
   .lb-item.top3 { color: #cd7f32; font-weight: bold; }
+
+  .cooldown-text { font-size: 11px; color: #aaa; text-align: center; margin-top: 10px; }
 
   /* --- 3D КУПЮРА --- */
   .scene-3d { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); perspective: 1200px; pointer-events: none; z-index: 1; }
@@ -73,6 +94,7 @@
   .fx-layer { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
   .bill-fly { position: absolute; width: 34px; height: 18px; background: linear-gradient(135deg, #38e878, #1a9e4a); border: 1.5px solid #0f5a2a; border-radius: 4px; color: #d6ffe0; font: 900 12px 'Arial Black', sans-serif; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 12px #2ee66e; will-change: transform, opacity; }
   .txt { position: absolute; font: 900 56px Impact, sans-serif; color: #4DB84B; white-space: nowrap; text-shadow: -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000, 4px 4px 0 #000, 6px 6px 0 #000; will-change: transform, opacity; }
+  .txt-dmg { color: #ff3333; } /* Красный текст для урона */
   .sprk { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px #ffe066; will-change: transform, opacity; }
 </style>
 </head>
@@ -94,7 +116,9 @@
 
 <div class="leaderboard" id="leaderboard" style="display: none;">
   <h3>ТОП ИГРОКОВ</h3>
+  <div style="font-size:12px; color:#888; text-align:center; margin-bottom:10px;">Кликни по врагу, чтобы ограбить!</div>
   <div id="lbList"></div>
+  <div class="cooldown-text" id="cooldownText">Ограбление готово</div>
 </div>
 
 <!-- 3D Сцена -->
@@ -112,30 +136,22 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-  import { getDatabase, ref, set, onValue, update, get, child } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+  import { getDatabase, ref, set, onValue, update, get, child, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
-  // ==========================================
-  // ВСТАВЬ СЮДА СВОЙ URL ИЗ FIREBASE (Шаг 1)
-  // ==========================================
+  // ВСТАВЬ СЮДА СВОЙ URL ИЗ FIREBASE
   const firebaseConfig = {
-  databaseURL: "https://realtime-database-89988-default-rtdb.firebaseio.com/" 
+    databaseURL: "https://realtime-database-89988-default-rtdb.firebaseio.com/" 
   };
 
-  // Инициализация Firebase
-  let app, db;
-  try {
-    app = initializeApp(firebaseConfig);
-    db = getDatabase(app);
-  } catch (e) {
-    console.error("Ошибка Firebase:", e);
-    alert("Ошибка подключения к базе данных. Проверь URL в коде.");
-  }
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
   let currentUser = localStorage.getItem('gta_user') || null;
   let myScore = 0;
-  let isHolding = false;
+  let previousScore = 0;
   let holdTimer = null;
-  let scoreBatch = 0; // Накапливаем клики для отправки в БД
+  let lastAttackTime = 0;
+  const ATTACK_COOLDOWN_MS = 5000; // Кулдаун 5 секунд
 
   const fx = document.getElementById('fx');
   const rand = (a, b) => Math.random() * (b - a) + a;
@@ -144,7 +160,6 @@
   window.login = function() {
     const name = document.getElementById('usernameInput').value.trim();
     if (name.length < 2) return alert("Никнейм слишком короткий!");
-    
     currentUser = name;
     localStorage.setItem('gta_user', name);
     startGame();
@@ -154,47 +169,73 @@
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('hud').style.display = 'block';
     document.getElementById('leaderboard').style.display = 'block';
-
-    // Загружаем текущий счет пользователя из БД
-    const dbRef = ref(db);
-    get(child(dbRef, `scores/${currentUser}`)).then((snapshot) => {
-      if (snapshot.exists()) {
-        myScore = snapshot.val();
-      } else {
-        myScore = 0;
-        set(ref(db, `scores/${currentUser}`), 0); // Создаем запись
+    
+    // Подписываемся на изменение СВОЕГО счета
+    onValue(ref(db, `scores/${currentUser}`), (snapshot) => {
+      const val = snapshot.val() || 0;
+      
+      // Если счет резко упал — значит нас ограбили!
+      if (previousScore > val && (previousScore - val) > 10) {
+        const stolen = previousScore - val;
+        triggerRobberyEffect(stolen);
       }
-      updateHUD();
+      
+      myScore = val;
+      previousScore = val;
+      document.getElementById('myScore').textContent = myScore;
     });
 
-    // Подписываемся на обновления топа в реальном времени
     listenToLeaderboard();
   }
 
-  // Если уже залогинен - сразу в игру
   if (currentUser) {
     document.getElementById('usernameInput').value = currentUser;
     startGame();
   }
 
-  // --- ОБНОВЛЕНИЕ СЧЕТА ---
-  function addScore(amount) {
-    myScore += amount;
-    scoreBatch += amount;
-    updateHUD();
-  }
-
-  function updateHUD() {
-    document.getElementById('myScore').textContent = myScore;
-  }
-
-  // Отправляем накопленные клики в Firebase раз в секунду (чтобы не забанили за спам)
-  setInterval(() => {
-    if (scoreBatch > 0 && currentUser) {
-      set(ref(db, `scores/${currentUser}`), myScore).catch(e => console.log("Ошибка записи:", e));
-      scoreBatch = 0;
+  // --- МЕХАНИКА ОГРАБЛЕНИЯ ---
+  window.attackUser = async function(targetName) {
+    if (targetName === currentUser) return; // Нельзя грабить себя
+    
+    const now = Date.now();
+    if (now - lastAttackTime < ATTACK_COOLDOWN_MS) {
+      return; // Еще не прошел кулдаун
     }
-  }, 1000);
+    
+    lastAttackTime = now;
+    
+    try {
+      const targetRef = ref(db, `scores/${targetName}`);
+      
+      // Транзакция: атомарно забираем деньги у цели
+      const result = await runTransaction(targetRef, (currentScore) => {
+        if (currentScore === null) return 0; // Если игрока нет
+        // Забираем 10% от его счета, но не меньше 50 и не больше 1000
+        let stealAmount = Math.floor(currentScore * 0.1);
+        if (stealAmount < 50) stealAmount = 50;
+        if (stealAmount > 1000) stealAmount = 1000;
+        
+        // Если у него меньше, чем мы хотим забрать — забираем всё
+        if (currentScore < stealAmount) stealAmount = currentScore;
+        
+        // Сохраняем сумму кражи в глобальную переменную для следующего шага
+        window.lastStolenAmount = stealAmount; 
+        return currentScore - stealAmount;
+      });
+      
+      const stolen = window.lastStolenAmount || 0;
+      if (stolen > 0) {
+        // Начисляем себе украденное
+        const myRef = ref(db, `scores/${currentUser}`);
+        await update(myRef, { [currentUser]: myScore + stolen }); // Используем update для безопасности
+        
+        // Визуальный эффект у себя (успешное ограбление)
+        triggerHeistSuccessEffect(stolen);
+      }
+    } catch (e) {
+      console.error("Ошибка ограбления:", e);
+    }
+  };
 
   // --- ТАБЛИЦА ЛИДЕРОВ ---
   function listenToLeaderboard() {
@@ -203,40 +244,132 @@
       const data = snapshot.val();
       const lbList = document.getElementById('lbList');
       lbList.innerHTML = '';
-
       if (!data) return;
 
-      // Превращаем объект в массив и сортируем по убыванию
       const sorted = Object.entries(data)
         .map(([name, score]) => ({ name, score }))
         .sort((a, b) => b.score - a.score)
-        .slice(0, 5); // Берем только топ-5
+        .slice(0, 5);
 
       sorted.forEach((player, index) => {
         const el = document.createElement('div');
-        el.className = `lb-item ${index === 0 ? 'top1' : index === 1 ? 'top2' : index === 2 ? 'top3' : ''}`;
+        // Если это мы - помечаем классом me
+        const isMe = player.name === currentUser;
+        el.className = `lb-item ${index === 0 ? 'top1' : index === 1 ? 'top2' : index === 2 ? 'top3' : ''} ${isMe ? 'me' : ''}`;
+        
+        // Обработчик клика для ограбления
+        if (!isMe) {
+          el.onclick = () => attackUser(player.name);
+        }
+
         el.innerHTML = `<span>${index + 1}. ${player.name}</span> <span>${player.score}</span>`;
         lbList.appendChild(el);
       });
+
+      // Обновляем текст кулдауна
+      updateCooldownUI();
     });
   }
 
-  // --- ЭФФЕКТЫ (КЛИКИ) ---
+  function updateCooldownUI() {
+    const el = document.getElementById('cooldownText');
+    const now = Date.now();
+    const timeLeft = ATTACK_COOLDOWN_MS - (now - lastAttackTime);
+    
+    if (timeLeft > 0) {
+      el.textContent = `Ограбление через ${Math.ceil(timeLeft / 1000)} сек...`;
+      el.style.color = '#ff3333';
+      setTimeout(updateCooldownUI, 100); // Обновляем каждые 100мс
+    } else {
+      el.textContent = "Ограбление готово";
+      el.style.color = '#4DB84B';
+    }
+  }
+
+  // --- ЭФФЕКТЫ ---
+  
+  // Эффект когда грабят ТЕБЯ
+  function triggerRobberyEffect(amount) {
+    document.body.classList.add('attacked');
+    setTimeout(() => document.body.classList.remove('attacked'), 500);
+    
+    const x = window.innerWidth / 2;
+    const y = window.innerHeight / 2;
+    
+    // Красный текст
+    const el = document.createElement('div');
+    el.className = 'txt txt-dmg'; 
+    el.textContent = `-$${amount}`;
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    fx.appendChild(el);
+
+    const vy = rand(-150, -50), dur = 1500, start = performance.now();
+    (function step(now) {
+      const t = Math.min((now - start) / dur, 1), dt = (now - start) / 1000;
+      const dy = vy * dt + 100 * dt * dt;
+      const scale = t < 0.1 ? 1 + t * 3 : 1.3 - t * 0.3;
+      el.style.transform = `translate(0px, ${dy}px) scale(${scale})`;
+      el.style.opacity = t > 0.7 ? 1 - (t - 0.7) / 0.3 : 1;
+      t < 1 ? requestAnimationFrame(step) : el.remove();
+    })(start);
+  }
+
+  // Эффект когда грабишь ТЫ
+  function triggerHeistSuccessEffect(amount) {
+    const x = window.innerWidth / 2;
+    const y = window.innerHeight / 2;
+    
+    // Зеленый текст
+    const el = document.createElement('div');
+    el.className = 'txt'; 
+    el.textContent = `+$${amount}`;
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    el.style.fontSize = '72px'; // Чуть больше обычного
+    fx.appendChild(el);
+
+    const vy = rand(-200, -100), dur = 1500, start = performance.now();
+    (function step(now) {
+      const t = Math.min((now - start) / dur, 1), dt = (now - start) / 1000;
+      const dy = vy * dt + 150 * dt * dt;
+      const scale = t < 0.1 ? 1 + t * 3 : 1.3 - t * 0.3;
+      el.style.transform = `translate(0px, ${dy}px) scale(${scale})`;
+      el.style.opacity = t > 0.7 ? 1 - (t - 0.7) / 0.3 : 1;
+      t < 1 ? requestAnimationFrame(step) : el.remove();
+    })(start);
+    
+    // Взрыв купюр
+    for (let i = 0; i < 15; i++) {
+      const b = document.createElement('div');
+      b.className = 'bill-fly'; b.textContent = '$';
+      b.style.left = x + 'px'; b.style.top = y + 'px';
+      fx.appendChild(b);
+      const angle = rand(-Math.PI, 0), speed = rand(200, 400);
+      const vx = Math.cos(angle) * speed, vy = Math.sin(angle) * speed;
+      const rot = rand(-720, 720), bDur = rand(1000, 1500), bStart = performance.now();
+      (function step(now) {
+        const t = Math.min((now - bStart) / bDur, 1), dt = (now - bStart) / 1000;
+        const dx = vx * dt * (1 - 0.5 * t), dy = vy * dt + 400 * dt * dt;
+        b.style.transform = `translate(${dx}px, ${dy}px) rotate(${rot * t}deg)`;
+        b.style.opacity = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
+        t < 1 ? requestAnimationFrame(step) : b.remove();
+      })(bStart);
+    }
+  }
+
+  // Стандартные эффекты клика
   function spawnBills(x, y) {
     for (let i = 0; i < 5; i++) {
       const el = document.createElement('div');
       el.className = 'bill-fly'; el.textContent = '$';
       el.style.left = x + 'px'; el.style.top = y + 'px';
       fx.appendChild(el);
-      
       const angle = rand(-Math.PI * 0.9, -Math.PI * 0.1), speed = rand(150, 300);
       const vx = Math.cos(angle) * speed, vy = Math.sin(angle) * speed;
       const rot = rand(-720, 720), dur = rand(1200, 1800), start = performance.now();
-      
       (function step(now) {
         const t = Math.min((now - start) / dur, 1), dt = (now - start) / 1000;
         const dx = vx * dt * (1 - 0.5 * t), dy = vy * dt + 350 * dt * dt;
-        el.style.transform = `translate(${dx}px, ${dy}px) rotate(${rot * t}deg) scale(${1 + 0.1 * Math.sin(t * Math.PI)})`;
+        el.style.transform = `translate(${dx}px, ${dy}px) rotate(${rot * t}deg)`;
         el.style.opacity = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
         t < 1 ? requestAnimationFrame(step) : el.remove();
       })(start);
@@ -248,9 +381,7 @@
     el.className = 'txt'; el.textContent = `+$${gain}`;
     el.style.left = x + 'px'; el.style.top = y + 'px';
     fx.appendChild(el);
-
     const vx = rand(-40, 40), vy = rand(-200, -120), dur = 1300, start = performance.now();
-    
     (function step(now) {
       const t = Math.min((now - start) / dur, 1), dt = (now - start) / 1000;
       const dx = vx * dt * (1 - 0.4 * t), dy = vy * dt + 180 * dt * dt;
@@ -267,11 +398,9 @@
       el.className = 'sprk';
       el.style.left = x + 'px'; el.style.top = y + 'px';
       fx.appendChild(el);
-
       const angle = rand(-Math.PI, 0), speed = rand(100, 250);
       const vx = Math.cos(angle) * speed, vy = Math.sin(angle) * speed;
       const dur = rand(400, 700), start = performance.now();
-
       (function step(now) {
         const t = Math.min((now - start) / dur, 1), dt = (now - start) / 1000;
         const dx = vx * dt, dy = vy * dt + 350 * dt * dt;
@@ -283,10 +412,18 @@
   }
 
   function triggerEffect(x, y) {
-    if (!currentUser) return; // Если не залогинен - эффектов нет
-
+    if (!currentUser) return; 
     const gain = Math.floor(rand(10, 100));
-    addScore(gain); // Добавляем очки в интерфейс
+    
+    // Локально обновляем счет для скорости (в БД отправится чуть позже)
+    myScore += gain;
+    document.getElementById('myScore').textContent = myScore;
+    
+    // Отправляем в БД (с небольшой задержкой, чтобы не спамить сервер)
+    clearTimeout(window.saveScoreTimeout);
+    window.saveScoreTimeout = setTimeout(() => {
+      set(ref(db, `scores/${currentUser}`), myScore).catch(() => {});
+    }, 500);
 
     spawnBills(x, y);
     spawnText(x, y, gain);
@@ -297,7 +434,7 @@
   let lastX = 0, lastY = 0;
 
   document.body.addEventListener('pointerdown', (e) => {
-    if (!currentUser) return; 
+    if (!currentUser || e.target.closest('.leaderboard')) return; // Игнорируем клики по топу
     if (e.pointerType === 'mouse' && e.button !== 0) return; 
 
     lastX = e.clientX;
@@ -307,7 +444,7 @@
     if (holdTimer) clearInterval(holdTimer);
     holdTimer = setInterval(() => {
       triggerEffect(lastX, lastY);
-    }, 150); // При удержании клики идут каждые 150мс
+    }, 150);
   });
 
   document.body.addEventListener('pointermove', (e) => {
@@ -327,15 +464,6 @@
   window.addEventListener('pointerup', stopHold);
   window.addEventListener('pointercancel', stopHold);
   window.addEventListener('blur', stopHold);
-
-  // Автоматический эффект (отключен, если не залогинен)
-  setInterval(() => {
-    if (!currentUser) return;
-    const x = (window.innerWidth / 2) + rand(20, 60);
-    const y = (window.innerHeight / 2) + rand(20, 60);
-    triggerEffect(x, y);
-  }, 2000);
-
 </script>
 </body>
 </html>
