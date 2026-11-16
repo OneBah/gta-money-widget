@@ -20,7 +20,6 @@
     40%, 60% { transform: translate3d(8px, 0, 0); }
   }
 
-  /* --- ЛОГИН --- */
   .login-screen {
     position: absolute; inset: 0; background: rgba(13, 6, 24, 0.95);
     display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
@@ -41,7 +40,6 @@
   }
   button:hover { background: #3b963a; transform: scale(1.05); }
 
-  /* --- ИНТЕРФЕЙС --- */
   .hud {
     position: absolute; top: 20px; left: 20px; z-index: 10;
     font-family: Impact, sans-serif; font-size: 28px; color: #4DB84B;
@@ -69,7 +67,6 @@
 
   .cooldown-text { font-size: 11px; color: #aaa; text-align: center; margin-top: 10px; }
 
-  /* --- АПГРЕЙДЫ (МАГАЗИН) --- */
   .upgrade-panel {
     position: absolute; bottom: 20px; left: 20px; z-index: 10;
     background: rgba(26, 11, 46, 0.95); padding: 15px; border-radius: 10px;
@@ -89,7 +86,6 @@
   .upg-desc { font-size: 11px; color: #aaa; margin-top: 4px; }
   .upg-cost { color: #4DB84B; font-weight: bold; font-size: 12px; margin-top: 6px; }
 
-  /* --- 3D КУПЮРА --- */
   .scene-3d { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); perspective: 1200px; pointer-events: none; z-index: 1; }
   .bill-float { animation: float 4s ease-in-out infinite; transform-style: preserve-3d; }
   .bill-3d { width: 260px; height: 130px; position: relative; transform-style: preserve-3d; animation: spin 8s linear infinite; }
@@ -107,7 +103,6 @@
   @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
   @keyframes spin { 0% { transform: rotateX(15deg) rotateY(0deg) rotateZ(-10deg); } 100% { transform: rotateX(15deg) rotateY(360deg) rotateZ(-10deg); } }
 
-  /* --- ЭФФЕКТЫ --- */
   .fx-layer { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
   .bill-fly { position: absolute; width: 34px; height: 18px; background: linear-gradient(135deg, #38e878, #1a9e4a); border: 1.5px solid #0f5a2a; border-radius: 4px; color: #d6ffe0; font: 900 12px 'Arial Black', sans-serif; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 12px #2ee66e; will-change: transform, opacity; }
   .txt { position: absolute; font: 900 56px Impact, sans-serif; color: #4DB84B; white-space: nowrap; text-shadow: -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000, 4px 4px 0 #000, 6px 6px 0 #000; will-change: transform, opacity; }
@@ -129,7 +124,6 @@
   БАЛАНС: <span id="myScore" style="color:white;">0</span>
 </div>
 
-<!-- Таблица лидеров -->
 <div class="leaderboard" id="leaderboard" style="display: none;">
   <h3>ТОП ИГРОКОВ</h3>
   <div style="font-size:12px; color:#888; text-align:center; margin-bottom:10px;">Кликни по врагу, чтобы ограбить!</div>
@@ -137,7 +131,6 @@
   <div class="cooldown-text" id="cooldownText">Ограбление готово</div>
 </div>
 
-<!-- Магазин Апгрейдов -->
 <div class="upgrade-panel" id="upgradePanel" style="display: none;">
   <h3>БИЗНЕС И АПГРЕЙДЫ</h3>
   
@@ -179,7 +172,6 @@
 
   let currentUser = localStorage.getItem('gta_user') || null;
   
-  // Данные игрока
   let myData = { money: 0, clickLvl: 1, autoLvl: 0 };
   let previousMoney = 0;
   
@@ -191,7 +183,6 @@
   const fx = document.getElementById('fx');
   const rand = (a, b) => Math.random() * (b - a) + a;
 
-  // Математика апгрейдов
   const getClickPower = (lvl) => Math.floor(rand(10, 50) * (1 + (lvl - 1) * 0.5));
   const getClickCost = (lvl) => Math.floor(500 * Math.pow(1.6, lvl - 1));
   const getAutoIncome = (lvl) => lvl * 50;
@@ -211,22 +202,29 @@
     document.getElementById('leaderboard').style.display = 'block';
     document.getElementById('upgradePanel').style.display = 'block';
     
-    // Слушаем изменения СВОЕГО профиля
     onValue(ref(db, `scores/${currentUser}`), (snapshot) => {
       let val = snapshot.val();
-      
-      // Миграция со старого формата или защита от мусора
+      let needsUpdate = false;
+
+      // --- АВТОМАТИЧЕСКАЯ МИГРАЦИЯ ДАННЫХ ---
       if (typeof val === 'number') {
+        // Если в базе лежит просто число, конвертируем в объект
         val = { money: val, clickLvl: 1, autoLvl: 0 };
+        needsUpdate = true;
       } else if (!val || typeof val.money !== 'number') {
+        // Если пусто или мусор
         val = { money: 0, clickLvl: 1, autoLvl: 0 };
+        needsUpdate = true;
       }
 
-      // Восстанавливаем пропущенные ключи
-      if (typeof val.clickLvl !== 'number') val.clickLvl = 1;
-      if (typeof val.autoLvl !== 'number') val.autoLvl = 0;
+      if (typeof val.clickLvl !== 'number') { val.clickLvl = 1; needsUpdate = true; }
+      if (typeof val.autoLvl !== 'number') { val.autoLvl = 0; needsUpdate = true; }
       
-      // Проверка на ограбление (если деньги резко упали)
+      // Перезаписываем в базу, если формат был старый
+      if (needsUpdate) {
+        set(ref(db, `scores/${currentUser}`), val);
+      }
+      
       if (previousMoney > val.money && (previousMoney - val.money) > 10) {
         const stolen = previousMoney - val.money;
         triggerRobberyEffect(stolen);
@@ -261,21 +259,20 @@
     document.getElementById('autoCostText').textContent = getAutoCost(myData.autoLvl);
   }
 
-  // --- ПОКУПКА АПГРЕЙДОВ ---
+  // --- ПОКУПКА АПГРЕЙДОВ (ИСПРАВЛЕНО) ---
   window.buyClickUpgrade = function() {
     const cost = getClickCost(myData.clickLvl);
-    if (myData.money < cost) return; // Не хватает денег
+    if (myData.money < cost) return;
 
     const userRef = ref(db, `scores/${currentUser}`);
     runTransaction(userRef, (data) => {
+      if (!data) data = { money: 0, clickLvl: 1, autoLvl: 0 };
       if (data.money >= cost) {
         data.money -= cost;
         data.clickLvl += 1;
       }
       return data;
-    }).then(() => {
-      triggerHeistSuccessEffect(0); // Маленький эффект успеха (без текста +$)
-    });
+    }).catch(e => console.log("Ошибка покупки:", e));
   };
 
   window.buyAutoUpgrade = function() {
@@ -284,15 +281,15 @@
 
     const userRef = ref(db, `scores/${currentUser}`);
     runTransaction(userRef, (data) => {
+      if (!data) data = { money: 0, clickLvl: 1, autoLvl: 0 };
       if (data.money >= cost) {
         data.money -= cost;
         data.autoLvl += 1;
       }
       return data;
-    });
+    }).catch(e => console.log("Ошибка покупки:", e));
   };
 
-  // --- АВТОКЛИКЕР (ПАССИВНЫЙ ДОХОД) ---
   function startAutoIncome() {
     setInterval(() => {
       if (!currentUser || myData.autoLvl <= 0) return;
@@ -304,20 +301,20 @@
       
       updateHUD();
       
-      // Сохраняем в БД пачками, чтобы не спамить
       clearTimeout(window.autoSaveTimeout);
       window.autoSaveTimeout = setTimeout(() => {
         if (pendingMoney > 0) {
           const userRef = ref(db, `scores/${currentUser}`);
           runTransaction(userRef, (data) => {
-            if (data) data.money += pendingMoney;
+            if (!data) data = { money: 0, clickLvl: 1, autoLvl: 0 };
+            data.money += pendingMoney;
             return data;
           });
           pendingMoney = 0;
         }
       }, 1000);
       
-    }, 1000); // Раз в секунду
+    }, 1000);
   }
 
   // --- ОГРАБЛЕНИЕ ---
@@ -332,7 +329,12 @@
       let stolenAmount = 0;
 
       await runTransaction(targetRef, (targetData) => {
+        // Поддержка старого формата (если там просто число)
+        if (typeof targetData === 'number') {
+           targetData = { money: targetData, clickLvl: 1, autoLvl: 0 };
+        }
         if (!targetData || typeof targetData.money !== 'number') return targetData;
+        
         let steal = Math.floor(targetData.money * 0.1);
         steal = Math.max(50, Math.min(steal, 1000, targetData.money));
         stolenAmount = steal;
@@ -343,6 +345,7 @@
       if (stolenAmount > 0) {
         const myRef = ref(db, `scores/${currentUser}`);
         await runTransaction(myRef, (data) => {
+          if (!data) data = { money: 0, clickLvl: 1, autoLvl: 0 };
           data.money += stolenAmount;
           return data;
         });
@@ -353,7 +356,7 @@
     }
   };
 
-  // --- ТАБЛИЦА ЛИДЕРОВ ---
+  // --- ТАБЛИЦА ЛИДЕРОВ (ИСПРАВЛЕНО) ---
   function listenToLeaderboard() {
     onValue(ref(db, 'scores'), (snapshot) => {
       const data = snapshot.val();
@@ -361,9 +364,13 @@
       lbList.innerHTML = '';
       if (!data) return;
 
+      // Поддержка обоих форматов (старого числа и нового объекта)
       const sorted = Object.entries(data)
-        .filter(([_, val]) => val && typeof val.money === 'number')
-        .map(([name, val]) => ({ name, money: val.money }))
+        .map(([name, val]) => {
+          if (typeof val === 'number') return { name, money: val };
+          if (val && typeof val.money === 'number') return { name, money: val.money };
+          return { name, money: 0 };
+        })
         .sort((a, b) => b.money - a.money)
         .slice(0, 5);
 
@@ -438,7 +445,6 @@
       })(start);
     }
     
-    // Взрыв купюр
     for (let i = 0; i < 15; i++) {
       const b = document.createElement('div');
       b.className = 'bill-fly'; b.textContent = '$';
@@ -513,21 +519,22 @@
   function triggerEffect(x, y) {
     if (!currentUser) return; 
     
-    // Расчет дохода с учетом уровня клика
     const gain = getClickPower(myData.clickLvl);
     
+    // Локальное обновление
     myData.money += gain;
     previousMoney = myData.money;
     pendingMoney += gain;
     updateHUD();
     
-    // Сохранение кликов в БД
+    // Отправка в базу
     clearTimeout(window.saveScoreTimeout);
     window.saveScoreTimeout = setTimeout(() => {
       if (pendingMoney > 0) {
         const userRef = ref(db, `scores/${currentUser}`);
         runTransaction(userRef, (data) => {
-          if (data) data.money += pendingMoney;
+          if (!data) data = { money: 0, clickLvl: 1, autoLvl: 0 };
+          data.money += pendingMoney;
           return data;
         }).catch(e => console.log("Ошибка записи:", e));
         pendingMoney = 0;
@@ -543,7 +550,7 @@
   let lastX = 0, lastY = 0;
 
   document.body.addEventListener('pointerdown', (e) => {
-    // Не кликаем, если нажали на таблицу лидеров или магазин
+    // Исключаем клики по меню и магазину
     if (!currentUser || e.target.closest('.leaderboard') || e.target.closest('.upgrade-panel')) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return; 
 
