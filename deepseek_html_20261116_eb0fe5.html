@@ -126,7 +126,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-  import { getDatabase, ref, set, onValue, get, child, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+  import { getDatabase, ref, set, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
   const firebaseConfig = {
     databaseURL: "https://realtime-database-89988-default-rtdb.firebaseio.com/" 
@@ -140,7 +140,7 @@
   let previousScore = 0;
   let holdTimer = null;
   let lastAttackTime = 0;
-  let pendingGain = 0; // Накапливаем клики для отправки
+  let pendingGain = 0; 
   const ATTACK_COOLDOWN_MS = 5000; 
 
   const fx = document.getElementById('fx');
@@ -159,11 +159,10 @@
     document.getElementById('hud').style.display = 'block';
     document.getElementById('leaderboard').style.display = 'block';
     
-    // Слушаем свой счет с защитой от "[object Object]"
     onValue(ref(db, `scores/${currentUser}`), (snapshot) => {
       let val = snapshot.val();
       
-      // Если в базе лежит мусор или объект (из-за старого бага) - сбрасываем в 0
+      // Железобетонная проверка на "[object Object]"
       if (typeof val !== 'number') {
         val = 0;
         set(ref(db, `scores/${currentUser}`), 0);
@@ -198,16 +197,14 @@
       const targetRef = ref(db, `scores/${targetName}`);
       let stolenAmount = 0;
 
-      // 1. Транзакция: забираем у цели
       await runTransaction(targetRef, (currentScore) => {
-        if (typeof currentScore !== 'number') return; // Если там мусор - отмена
+        if (typeof currentScore !== 'number') return currentScore; // Если мусор - отмена
         let steal = Math.floor(currentScore * 0.1);
-        steal = Math.max(50, Math.min(steal, 1000, currentScore)); // 10%, но не меньше 50, не больше 1000
+        steal = Math.max(50, Math.min(steal, 1000, currentScore));
         stolenAmount = steal;
         return currentScore - steal;
       });
 
-      // 2. Если успешно забрали, начисляем себе
       if (stolenAmount > 0) {
         const myRef = ref(db, `scores/${currentUser}`);
         await runTransaction(myRef, (currentScore) => {
@@ -230,7 +227,7 @@
       if (!data) return;
 
       const sorted = Object.entries(data)
-        .filter(([_, score]) => typeof score === 'number') // Отсекаем битые данные
+        .filter(([_, score]) => typeof score === 'number') // Показываем только нормальные числа
         .map(([name, score]) => ({ name, score }))
         .sort((a, b) => b.score - a.score)
         .slice(0, 5);
@@ -378,11 +375,13 @@
     if (!currentUser) return; 
     const gain = Math.floor(rand(10, 100));
     
+    // Абсолютная защита от "[object Object]"
+    if (typeof myScore !== 'number') myScore = 0; 
+    
     myScore += gain;
     pendingGain += gain;
     document.getElementById('myScore').textContent = myScore;
     
-    // Отправляем накопленное в БД раз в 500мс, чтобы не перегружать сервер
     clearTimeout(window.saveScoreTimeout);
     window.saveScoreTimeout = setTimeout(() => {
       if (pendingGain > 0) {
