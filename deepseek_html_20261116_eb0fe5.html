@@ -2,176 +2,228 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>GTA Hold Money FX</title>
+<title>GTA Money Clicker</title>
 <style>
+  * { box-sizing: border-box; }
   body { 
-    margin: 0; 
-    height: 100vh; 
-    overflow: hidden; 
-    background: transparent; 
-    cursor: crosshair;
-    user-select: none; /* Запрещает выделение текста при зажатии */
-    touch-action: none; /* Отключает скролл на мобильных при удержании */
+    margin: 0; height: 100vh; overflow: hidden; background: #0d0618; 
+    font-family: 'Trebuchet MS', sans-serif; color: white;
+    cursor: crosshair; user-select: none; touch-action: none;
   }
 
-  /* --- 3D СЦЕНА --- */
-  .scene-3d {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    perspective: 1200px;
-    pointer-events: none;
-    z-index: 1;
+  /* --- ЛОГИН --- */
+  .login-screen {
+    position: absolute; inset: 0; background: rgba(13, 6, 24, 0.95);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 100;
   }
-
-  .bill-float {
-    animation: float 4s ease-in-out infinite;
-    transform-style: preserve-3d;
+  .login-box {
+    background: #1a0b2e; padding: 40px; border-radius: 15px; 
+    border: 2px solid #4DB84B; text-align: center; box-shadow: 0 0 30px rgba(77, 184, 75, 0.3);
   }
-
-  .bill-3d {
-    width: 260px; height: 130px;
-    position: relative;
-    transform-style: preserve-3d;
-    animation: spin 8s linear infinite;
+  .login-box h2 { margin-top: 0; color: #4DB84B; font-family: Impact, sans-serif; letter-spacing: 1px;}
+  input {
+    padding: 12px 15px; font-size: 18px; border-radius: 8px; border: none; 
+    outline: none; margin-bottom: 15px; width: 100%; text-align: center;
   }
-
-  .face {
-    position: absolute;
-    backface-visibility: hidden;
-    box-sizing: border-box;
-    border: 1px solid #064a22;
+  button {
+    padding: 12px 20px; font-size: 18px; font-weight: bold; border-radius: 8px; 
+    border: none; background: #4DB84B; color: white; cursor: pointer; 
+    transition: 0.2s; font-family: Impact, sans-serif; letter-spacing: 1px;
   }
+  button:hover { background: #3b963a; transform: scale(1.05); }
 
-  .front, .back {
-    width: 260px; height: 130px;
-    border-radius: 4px;
-    overflow: hidden;
-    background: #1a7a3a;
+  /* --- ИНТЕРФЕЙС --- */
+  .hud {
+    position: absolute; top: 20px; left: 20px; z-index: 10;
+    font-family: Impact, sans-serif; font-size: 24px; color: #4DB84B;
+    text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
   }
+  
+  .leaderboard {
+    position: absolute; top: 20px; right: 20px; z-index: 10;
+    background: rgba(26, 11, 46, 0.9); padding: 15px 25px; border-radius: 10px;
+    border: 2px solid #4DB84B; min-width: 200px;
+  }
+  .leaderboard h3 { margin: 0 0 10px 0; text-align: center; color: #4DB84B; font-family: Impact, sans-serif; letter-spacing: 1px; border-bottom: 1px solid #333; padding-bottom: 5px;}
+  .lb-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 16px; }
+  .lb-item.top1 { color: #ffd700; font-weight: bold; font-size: 18px; }
+  .lb-item.top2 { color: #c0c0c0; font-weight: bold; }
+  .lb-item.top3 { color: #cd7f32; font-weight: bold; }
 
+  /* --- 3D КУПЮРА --- */
+  .scene-3d { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); perspective: 1200px; pointer-events: none; z-index: 1; }
+  .bill-float { animation: float 4s ease-in-out infinite; transform-style: preserve-3d; }
+  .bill-3d { width: 260px; height: 130px; position: relative; transform-style: preserve-3d; animation: spin 8s linear infinite; }
+  .face { position: absolute; backface-visibility: hidden; border: 1px solid #064a22; }
+  .front, .back { width: 260px; height: 130px; border-radius: 4px; overflow: hidden; background: #1a7a3a; }
   .front { transform: translateZ(8px); }
-  .back  { transform: rotateY(180deg) translateZ(8px); }
-
+  .back { transform: rotateY(180deg) translateZ(8px); }
   .edge { background-color: #0d6b32; }
-  
-  .edge-y {
-    width: 260px; height: 16px; left: 0; top: 57px;
-    background-image: repeating-linear-gradient(to right, transparent, transparent 1px, rgba(0,0,0,0.4) 1px, rgba(0,0,0,0.4) 3px);
-  }
-  
-  .edge-x {
-    width: 16px; height: 130px; left: 122px; top: 0;
-    background-image: repeating-linear-gradient(to bottom, transparent, transparent 1px, rgba(0,0,0,0.4) 1px, rgba(0,0,0,0.4) 3px);
-  }
-
-  .top    { transform: rotateX(90deg) translateZ(65px); }
+  .edge-y { width: 260px; height: 16px; left: 0; top: 57px; background-image: repeating-linear-gradient(to right, transparent, transparent 1px, rgba(0,0,0,0.4) 1px, rgba(0,0,0,0.4) 3px); }
+  .edge-x { width: 16px; height: 130px; left: 122px; top: 0; background-image: repeating-linear-gradient(to bottom, transparent, transparent 1px, rgba(0,0,0,0.4) 1px, rgba(0,0,0,0.4) 3px); }
+  .top { transform: rotateX(90deg) translateZ(65px); }
   .bottom { transform: rotateX(-90deg) translateZ(65px); }
-  .right  { transform: rotateY(90deg) translateZ(130px); }
-  .left   { transform: rotateY(-90deg) translateZ(130px); }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-20px); }
-  }
-  @keyframes spin {
-    0%   { transform: rotateX(15deg) rotateY(0deg) rotateZ(-10deg); }
-    100% { transform: rotateX(15deg) rotateY(360deg) rotateZ(-10deg); }
-  }
+  .right { transform: rotateY(90deg) translateZ(130px); }
+  .left { transform: rotateY(-90deg) translateZ(130px); }
+  @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
+  @keyframes spin { 0% { transform: rotateX(15deg) rotateY(0deg) rotateZ(-10deg); } 100% { transform: rotateX(15deg) rotateY(360deg) rotateZ(-10deg); } }
 
   /* --- ЭФФЕКТЫ --- */
-  .fx-layer {
-    position: absolute; inset: 0; z-index: 10; pointer-events: none;
-  }
-
-  .bill-fly {
-    position: absolute; width: 34px; height: 18px;
-    background: linear-gradient(135deg, #38e878, #1a9e4a);
-    border: 1.5px solid #0f5a2a; border-radius: 4px;
-    color: #d6ffe0; font: 900 12px 'Arial Black', sans-serif;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 0 12px #2ee66e, inset 0 0 4px rgba(255,255,255,0.5);
-    will-change: transform, opacity;
-  }
-  
-  .txt {
-    position: absolute; font: 900 56px Impact, sans-serif;
-    color: #4DB84B; white-space: nowrap;
-    text-shadow: -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000, 
-                 4px 4px 0 #000, -4px 0 0 #000, 4px 0 0 #000, 
-                 0 -4px 0 #000, 0 4px 0 #000, 6px 6px 0 #000;
-    will-change: transform, opacity;
-  }
-  
-  .sprk {
-    position: absolute; width: 8px; height: 8px;
-    border-radius: 50%; background: #fff;
-    box-shadow: 0 0 10px #ffe066, 0 0 20px #ffb800;
-    will-change: transform, opacity;
-  }
+  .fx-layer { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+  .bill-fly { position: absolute; width: 34px; height: 18px; background: linear-gradient(135deg, #38e878, #1a9e4a); border: 1.5px solid #0f5a2a; border-radius: 4px; color: #d6ffe0; font: 900 12px 'Arial Black', sans-serif; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 12px #2ee66e; will-change: transform, opacity; }
+  .txt { position: absolute; font: 900 56px Impact, sans-serif; color: #4DB84B; white-space: nowrap; text-shadow: -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000, 4px 4px 0 #000, 6px 6px 0 #000; will-change: transform, opacity; }
+  .sprk { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px #ffe066; will-change: transform, opacity; }
 </style>
 </head>
 <body>
 
+<!-- Экран логина -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h2>ВХОД В ИГРУ</h2>
+    <input type="text" id="usernameInput" placeholder="Твой никнейм" maxlength="15">
+    <button onclick="login()">ИГРАТЬ</button>
+  </div>
+</div>
+
+<!-- Интерфейс -->
+<div class="hud" id="hud" style="display: none;">
+  ТВОИ КЛИКИ: <span id="myScore" style="color:white;">0</span>
+</div>
+
+<div class="leaderboard" id="leaderboard" style="display: none;">
+  <h3>ТОП ИГРОКОВ</h3>
+  <div id="lbList"></div>
+</div>
+
+<!-- 3D Сцена -->
 <div class="scene-3d">
   <div class="bill-float">
     <div class="bill-3d">
-      
-      <div class="face front">
-        <svg viewBox="0 0 260 130" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="bgFront" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#4ade80"/>
-              <stop offset="100%" stop-color="#16a34a"/>
-            </linearGradient>
-          </defs>
-          <rect width="260" height="130" fill="url(#bgFront)"/>
-          <rect x="6" y="6" width="248" height="118" fill="none" stroke="#065f46" stroke-width="3" rx="6"/>
-          <rect x="14" y="14" width="232" height="102" fill="none" stroke="#bbf7d0" stroke-width="1.5" stroke-dasharray="8 6" rx="3" opacity="0.6"/>
-          <text x="22" y="32" font-family="Impact, sans-serif" font-size="18" fill="#065f46">100</text>
-          <text x="238" y="32" font-family="Impact, sans-serif" font-size="18" fill="#065f46" text-anchor="end">100</text>
-          <text x="22" y="116" font-family="Impact, sans-serif" font-size="18" fill="#065f46">100</text>
-          <text x="238" y="116" font-family="Impact, sans-serif" font-size="18" fill="#065f46" text-anchor="end">100</text>
-          <ellipse cx="130" cy="65" rx="45" ry="55" fill="#bbf7d0" stroke="#065f46" stroke-width="3"/>
-          <text x="130" y="88" font-family="Impact, sans-serif" font-size="70" fill="#065f46" text-anchor="middle">$</text>
-        </svg>
-      </div>
-
-      <div class="face back">
-        <svg viewBox="0 0 260 130" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="bgBack" x1="100%" y1="100%" x2="0%" y2="0%">
-              <stop offset="0%" stop-color="#4ade80"/>
-              <stop offset="100%" stop-color="#16a34a"/>
-            </linearGradient>
-          </defs>
-          <rect width="260" height="130" fill="url(#bgBack)"/>
-          <rect x="6" y="6" width="248" height="118" fill="none" stroke="#065f46" stroke-width="3" rx="6"/>
-          <rect x="14" y="14" width="232" height="102" fill="none" stroke="#bbf7d0" stroke-width="1.5" stroke-dasharray="8 6" rx="3" opacity="0.6"/>
-          <polygon points="130,25 185,95 75,95" fill="#16a34a" stroke="#065f46" stroke-width="2"/>
-          <rect x="75" y="95" width="110" height="10" fill="#16a34a" stroke="#065f46" stroke-width="2"/>
-          <ellipse cx="130" cy="55" rx="14" ry="8" fill="#bbf7d0" stroke="#065f46" stroke-width="2"/>
-          <circle cx="130" cy="55" r="4" fill="#065f46"/>
-        </svg>
-      </div>
-
-      <div class="face edge edge-y top"></div>
-      <div class="face edge edge-y bottom"></div>
-      <div class="face edge edge-x right"></div>
-      <div class="face edge edge-x left"></div>
-
+      <div class="face front"><svg viewBox="0 0 260 130" width="100%" height="100%"><defs><linearGradient id="bgF" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4ade80"/><stop offset="100%" stop-color="#16a34a"/></linearGradient></defs><rect width="260" height="130" fill="url(#bgF)"/><rect x="6" y="6" width="248" height="118" fill="none" stroke="#065f46" stroke-width="3" rx="6"/><rect x="14" y="14" width="232" height="102" fill="none" stroke="#bbf7d0" stroke-width="1.5" stroke-dasharray="8 6" rx="3" opacity="0.6"/><text x="22" y="32" font-family="Impact" font-size="18" fill="#065f46">100</text><text x="238" y="32" font-family="Impact" font-size="18" fill="#065f46" text-anchor="end">100</text><ellipse cx="130" cy="65" rx="45" ry="55" fill="#bbf7d0" stroke="#065f46" stroke-width="3"/><text x="130" y="88" font-family="Impact" font-size="70" fill="#065f46" text-anchor="middle">$</text></svg></div>
+      <div class="face back"><svg viewBox="0 0 260 130" width="100%" height="100%"><defs><linearGradient id="bgB" x1="100%" y1="100%" x2="0%" y2="0%"><stop offset="0%" stop-color="#4ade80"/><stop offset="100%" stop-color="#16a34a"/></linearGradient></defs><rect width="260" height="130" fill="url(#bgB)"/><rect x="6" y="6" width="248" height="118" fill="none" stroke="#065f46" stroke-width="3" rx="6"/><polygon points="130,25 185,95 75,95" fill="#16a34a" stroke="#065f46" stroke-width="2"/><rect x="75" y="95" width="110" height="10" fill="#16a34a" stroke="#065f46" stroke-width="2"/><ellipse cx="130" cy="55" rx="14" ry="8" fill="#bbf7d0" stroke="#065f46" stroke-width="2"/><circle cx="130" cy="55" r="4" fill="#065f46"/></svg></div>
+      <div class="face edge edge-y top"></div><div class="face edge edge-y bottom"></div><div class="face edge edge-x right"></div><div class="face edge edge-x left"></div>
     </div>
   </div>
 </div>
 
 <div class="fx-layer" id="fx"></div>
 
-<script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import { getDatabase, ref, set, onValue, update, get, child } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+  // ==========================================
+  // ВСТАВЬ СЮДА СВОЙ URL ИЗ FIREBASE (Шаг 1)
+  // ==========================================
+  const firebaseConfig = {
+  databaseURL: "https://realtime-database-89988-default-rtdb.firebaseio.com/" 
+  };
+
+  // Инициализация Firebase
+  let app, db;
+  try {
+    app = initializeApp(firebaseConfig);
+    db = getDatabase(app);
+  } catch (e) {
+    console.error("Ошибка Firebase:", e);
+    alert("Ошибка подключения к базе данных. Проверь URL в коде.");
+  }
+
+  let currentUser = localStorage.getItem('gta_user') || null;
+  let myScore = 0;
+  let isHolding = false;
+  let holdTimer = null;
+  let scoreBatch = 0; // Накапливаем клики для отправки в БД
+
   const fx = document.getElementById('fx');
   const rand = (a, b) => Math.random() * (b - a) + a;
 
+  // --- ЛОГИКА ЛОГИНА ---
+  window.login = function() {
+    const name = document.getElementById('usernameInput').value.trim();
+    if (name.length < 2) return alert("Никнейм слишком короткий!");
+    
+    currentUser = name;
+    localStorage.setItem('gta_user', name);
+    startGame();
+  };
+
+  function startGame() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('hud').style.display = 'block';
+    document.getElementById('leaderboard').style.display = 'block';
+
+    // Загружаем текущий счет пользователя из БД
+    const dbRef = ref(db);
+    get(child(dbRef, `scores/${currentUser}`)).then((snapshot) => {
+      if (snapshot.exists()) {
+        myScore = snapshot.val();
+      } else {
+        myScore = 0;
+        set(ref(db, `scores/${currentUser}`), 0); // Создаем запись
+      }
+      updateHUD();
+    });
+
+    // Подписываемся на обновления топа в реальном времени
+    listenToLeaderboard();
+  }
+
+  // Если уже залогинен - сразу в игру
+  if (currentUser) {
+    document.getElementById('usernameInput').value = currentUser;
+    startGame();
+  }
+
+  // --- ОБНОВЛЕНИЕ СЧЕТА ---
+  function addScore(amount) {
+    myScore += amount;
+    scoreBatch += amount;
+    updateHUD();
+  }
+
+  function updateHUD() {
+    document.getElementById('myScore').textContent = myScore;
+  }
+
+  // Отправляем накопленные клики в Firebase раз в секунду (чтобы не забанили за спам)
+  setInterval(() => {
+    if (scoreBatch > 0 && currentUser) {
+      set(ref(db, `scores/${currentUser}`), myScore).catch(e => console.log("Ошибка записи:", e));
+      scoreBatch = 0;
+    }
+  }, 1000);
+
+  // --- ТАБЛИЦА ЛИДЕРОВ ---
+  function listenToLeaderboard() {
+    const scoresRef = ref(db, 'scores');
+    onValue(scoresRef, (snapshot) => {
+      const data = snapshot.val();
+      const lbList = document.getElementById('lbList');
+      lbList.innerHTML = '';
+
+      if (!data) return;
+
+      // Превращаем объект в массив и сортируем по убыванию
+      const sorted = Object.entries(data)
+        .map(([name, score]) => ({ name, score }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5); // Берем только топ-5
+
+      sorted.forEach((player, index) => {
+        const el = document.createElement('div');
+        el.className = `lb-item ${index === 0 ? 'top1' : index === 1 ? 'top2' : index === 2 ? 'top3' : ''}`;
+        el.innerHTML = `<span>${index + 1}. ${player.name}</span> <span>${player.score}</span>`;
+        lbList.appendChild(el);
+      });
+    });
+  }
+
+  // --- ЭФФЕКТЫ (КЛИКИ) ---
   function spawnBills(x, y) {
-    for (let i = 0; i < 6; i++) { // Чуть уменьшил количество при зажатии, чтобы не лагало
+    for (let i = 0; i < 5; i++) {
       const el = document.createElement('div');
       el.className = 'bill-fly'; el.textContent = '$';
       el.style.left = x + 'px'; el.style.top = y + 'px';
@@ -191,9 +243,9 @@
     }
   }
 
-  function spawnText(x, y) {
+  function spawnText(x, y, gain) {
     const el = document.createElement('div');
-    el.className = 'txt'; el.textContent = `+$${Math.floor(rand(15, 999))}`;
+    el.className = 'txt'; el.textContent = `+$${gain}`;
     el.style.left = x + 'px'; el.style.top = y + 'px';
     fx.appendChild(el);
 
@@ -231,33 +283,33 @@
   }
 
   function triggerEffect(x, y) {
+    if (!currentUser) return; // Если не залогинен - эффектов нет
+
+    const gain = Math.floor(rand(10, 100));
+    addScore(gain); // Добавляем очки в интерфейс
+
     spawnBills(x, y);
-    spawnText(x, y);
+    spawnText(x, y, gain);
     spawnSparks(x, y);
   }
 
-  // --- ЛОГИКА УДЕРЖАНИЯ И КЛИКА ---
-  let holdTimer = null;
+  // --- УПРАВЛЕНИЕ ---
   let lastX = 0, lastY = 0;
 
   document.body.addEventListener('pointerdown', (e) => {
-    // Игнорируем правую кнопку мыши
+    if (!currentUser) return; 
     if (e.pointerType === 'mouse' && e.button !== 0) return; 
 
     lastX = e.clientX;
     lastY = e.clientY;
-    
-    // Срабатывает сразу при клике
     triggerEffect(lastX, lastY);
 
-    // Запускает поток эффектов при удержании (каждые 120 мс)
     if (holdTimer) clearInterval(holdTimer);
     holdTimer = setInterval(() => {
       triggerEffect(lastX, lastY);
-    }, 120);
+    }, 150); // При удержании клики идут каждые 150мс
   });
 
-  // Обновляем координаты, если водим мышкой с зажатой кнопкой
   document.body.addEventListener('pointermove', (e) => {
     if (holdTimer) {
       lastX = e.clientX;
@@ -265,7 +317,6 @@
     }
   });
 
-  // Останавливаем поток при отпускании кнопки
   const stopHold = () => {
     if (holdTimer) {
       clearInterval(holdTimer);
@@ -273,17 +324,17 @@
     }
   };
 
-  // Отслеживаем отпускание везде (включая выход за пределы окна)
   window.addEventListener('pointerup', stopHold);
   window.addEventListener('pointercancel', stopHold);
   window.addEventListener('blur', stopHold);
 
-  // --- АВТОМАТИЧЕСКИЙ ТАЙМЕР (каждые 1.5 сек) ---
+  // Автоматический эффект (отключен, если не залогинен)
   setInterval(() => {
+    if (!currentUser) return;
     const x = (window.innerWidth / 2) + rand(20, 60);
     const y = (window.innerHeight / 2) + rand(20, 60);
     triggerEffect(x, y);
-  }, 1500);
+  }, 2000);
 
 </script>
 </body>
