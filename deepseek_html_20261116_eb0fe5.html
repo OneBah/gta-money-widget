@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>GTA Money Clicker - Upgrades</title>
+<title>GTA Money Clicker - Empire</title>
 <style>
   * { box-sizing: border-box; }
   body { 
@@ -53,25 +53,21 @@
   }
   .leaderboard h3 { margin: 0 0 10px 0; text-align: center; color: #4DB84B; font-family: Impact, sans-serif; letter-spacing: 1px; border-bottom: 1px solid #333; padding-bottom: 5px;}
   
-  .lb-item { 
-    display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 16px; 
-    padding: 5px 8px; border-radius: 5px; transition: background 0.2s;
-  }
+  .lb-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 16px; padding: 5px 8px; border-radius: 5px; transition: background 0.2s; }
   .lb-item:not(.me) { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="%23ff3333" d="M12 2L2 22h20L12 2z"/></svg>') 12 12, crosshair; }
   .lb-item:not(.me):hover { background: rgba(255, 51, 51, 0.3); transform: scale(1.02); }
-  
   .lb-item.me { color: #4DB84B; font-weight: bold; border: 1px solid #4DB84B; background: rgba(77, 184, 75, 0.1); cursor: default; }
   .lb-item.top1 { color: #ffd700; font-weight: bold; font-size: 18px; }
   .lb-item.top2 { color: #c0c0c0; font-weight: bold; }
   .lb-item.top3 { color: #cd7f32; font-weight: bold; }
-
   .cooldown-text { font-size: 11px; color: #aaa; text-align: center; margin-top: 10px; }
 
   .upgrade-panel {
     position: absolute; bottom: 20px; left: 20px; z-index: 10;
     background: rgba(26, 11, 46, 0.95); padding: 15px; border-radius: 10px;
-    border: 2px solid #ffd700; width: 280px;
+    border: 2px solid #ffd700; width: 300px;
     box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+    max-height: 70vh; overflow-y: auto;
   }
   .upgrade-panel h3 { margin: 0 0 10px 0; text-align: center; color: #ffd700; font-family: Impact, sans-serif; letter-spacing: 1px; border-bottom: 1px solid #333; padding-bottom: 5px;}
   
@@ -81,7 +77,6 @@
   }
   .upg-btn:hover { border-color: #ffd700; background: #1a1a1a; }
   .upg-btn:active { transform: scale(0.98); }
-  
   .upg-title { font-weight: bold; color: #fff; font-size: 14px; display: flex; justify-content: space-between; }
   .upg-desc { font-size: 11px; color: #aaa; margin-top: 4px; }
   .upg-cost { color: #4DB84B; font-weight: bold; font-size: 12px; margin-top: 6px; }
@@ -102,6 +97,23 @@
   .left { transform: rotateY(-90deg) translateZ(130px); }
   @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
   @keyframes spin { 0% { transform: rotateX(15deg) rotateY(0deg) rotateZ(-10deg); } 100% { transform: rotateX(15deg) rotateY(360deg) rotateZ(-10deg); } }
+
+  /* ЗОЛОТАЯ КУПЮРА (ИВЕНТ) */
+  .golden-bill {
+    position: absolute; width: 80px; height: 45px;
+    background: linear-gradient(135deg, #ffd700, #ffaa00);
+    border: 2px solid #fff;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font: 900 24px Impact, sans-serif; color: #fff;
+    text-shadow: 0 0 10px #fff, 2px 2px 0 #b87a00;
+    box-shadow: 0 0 20px #ffd700, 0 0 40px #ffaa00, inset 0 0 10px rgba(255,255,255,0.8);
+    cursor: pointer; z-index: 50;
+    animation: pulseGold 0.5s infinite alternate;
+    transition: transform 0.1s;
+  }
+  .golden-bill:hover { transform: scale(1.1); }
+  @keyframes pulseGold { 0% { box-shadow: 0 0 20px #ffd700, 0 0 40px #ffaa00; } 100% { box-shadow: 0 0 30px #ffd700, 0 0 60px #ffaa00; transform: scale(1.05); } }
 
   .fx-layer { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
   .bill-fly { position: absolute; width: 34px; height: 18px; background: linear-gradient(135deg, #38e878, #1a9e4a); border: 1.5px solid #0f5a2a; border-radius: 4px; color: #d6ffe0; font: 900 12px 'Arial Black', sans-serif; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 12px #2ee66e; will-change: transform, opacity; }
@@ -132,7 +144,7 @@
 </div>
 
 <div class="upgrade-panel" id="upgradePanel" style="display: none;">
-  <h3>БИЗНЕС И АПГРЕЙДЫ</h3>
+  <h3>ИМПЕРИЯ</h3>
   
   <div class="upg-btn" onclick="buyClickUpgrade()">
     <div class="upg-title"><span>Мощь клика</span> <span id="clickLvlText">Ур. 1</span></div>
@@ -140,10 +152,22 @@
     <div class="upg-cost">Цена: $<span id="clickCostText">500</span></div>
   </div>
 
-  <div class="upg-btn" onclick="buyAutoUpgrade()">
-    <div class="upg-title"><span>Автокликер</span> <span id="autoLvlText">Ур. 0</span></div>
-    <div class="upg-desc">Приносит $<span id="autoIncomeText">50</span> в секунду</div>
-    <div class="upg-cost">Цена: $<span id="autoCostText">1000</span></div>
+  <div class="upg-btn" onclick="buyBiz('shawarma')">
+    <div class="upg-title"><span>🌯 Шаурма</span> <span id="shawarmaLvlText">Ур. 0</span></div>
+    <div class="upg-desc">Приносит $<span id="shawarmaIncomeText">10</span> в сек.</div>
+    <div class="upg-cost">Цена: $<span id="shawarmaCostText">1000</span></div>
+  </div>
+
+  <div class="upg-btn" onclick="buyBiz('carwash')">
+    <div class="upg-title"><span>🚗 Автомойка</span> <span id="carwashLvlText">Ур. 0</span></div>
+    <div class="upg-desc">Приносит $<span id="carwashIncomeText">50</span> в сек.</div>
+    <div class="upg-cost">Цена: $<span id="carwashCostText">10000</span></div>
+  </div>
+
+  <div class="upg-btn" onclick="buyBiz('casino')">
+    <div class="upg-title"><span>🎰 Казино</span> <span id="casinoLvlText">Ур. 0</span></div>
+    <div class="upg-desc">Приносит $<span id="casinoIncomeText">500</span> в сек.</div>
+    <div class="upg-cost">Цена: $<span id="casinoCostText">100000</span></div>
   </div>
 </div>
 
@@ -172,23 +196,84 @@
 
   let currentUser = localStorage.getItem('gta_user') || null;
   
-  let myData = { money: 0, clickLvl: 1, autoLvl: 0 };
+  // Структура профиля
+  let myData = { money: 0, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
   let previousMoney = 0;
   
   let holdTimer = null;
   let lastAttackTime = 0;
   let pendingMoney = 0; 
+  let goldenBillTimeout = null;
   const ATTACK_COOLDOWN_MS = 5000; 
 
   const fx = document.getElementById('fx');
   const rand = (a, b) => Math.random() * (b - a) + a;
 
+  // --- НАСТРОЙКИ БИЗНЕСОВ ---
+  const BIZ = {
+    shawarma: { baseCost: 1000, baseIncome: 10, mult: 1.6 },
+    carwash: { baseCost: 10000, baseIncome: 50, mult: 1.6 },
+    casino: { baseCost: 100000, baseIncome: 500, mult: 1.6 }
+  };
+
   const getClickPower = (lvl) => Math.floor(rand(10, 50) * (1 + (lvl - 1) * 0.5));
   const getClickCost = (lvl) => Math.floor(500 * Math.pow(1.6, lvl - 1));
-  const getAutoIncome = (lvl) => lvl * 50;
-  const getAutoCost = (lvl) => Math.floor(1000 * Math.pow(1.8, lvl));
+  const getBizCost = (bizKey, lvl) => Math.floor(BIZ[bizKey].baseCost * Math.pow(BIZ[bizKey].mult, lvl));
+  const getBizIncome = (bizKey, lvl) => lvl * BIZ[bizKey].baseIncome;
+
+  // --- ЗВУКИ (Web Audio API) ---
+  let audioCtx;
+  function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  
+  function playSound(type) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    const now = audioCtx.currentTime;
+
+    if (type === 'click') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+      osc.start(now); osc.stop(now + 0.1);
+    } 
+    else if (type === 'buy') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1200, now);
+      osc.frequency.setValueAtTime(1600, now + 0.1);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.start(now); osc.stop(now + 0.3);
+    } 
+    else if (type === 'damage') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(150, now);
+      osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.start(now); osc.stop(now + 0.3);
+    } 
+    else if (type === 'jackpot') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(400, now);
+      osc.frequency.setValueAtTime(600, now + 0.1);
+      osc.frequency.setValueAtTime(800, now + 0.2);
+      osc.frequency.setValueAtTime(1200, now + 0.3);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+      osc.start(now); osc.stop(now + 0.5);
+    }
+  }
 
   window.login = function() {
+    initAudio(); // Инициализируем звук по первому клику
     const name = document.getElementById('usernameInput').value.trim();
     if (name.length < 2) return alert("Никнейм слишком короткий!");
     currentUser = name;
@@ -206,24 +291,33 @@
       let val = snapshot.val();
       let needsUpdate = false;
 
+      // Миграция старого формата
       if (typeof val === 'number') {
-        val = { money: val, clickLvl: 1, autoLvl: 0 };
+        val = { money: val, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
         needsUpdate = true;
       } else if (!val || typeof val.money !== 'number') {
-        val = { money: 0, clickLvl: 1, autoLvl: 0 };
+        val = { money: 0, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
+        needsUpdate = true;
+      }
+
+      // Миграция autoLvl в lvlShawarma
+      if (val.autoLvl !== undefined) {
+        val.lvlShawarma = val.autoLvl;
+        delete val.autoLvl;
         needsUpdate = true;
       }
 
       if (typeof val.clickLvl !== 'number') { val.clickLvl = 1; needsUpdate = true; }
-      if (typeof val.autoLvl !== 'number') { val.autoLvl = 0; needsUpdate = true; }
+      if (typeof val.lvlShawarma !== 'number') { val.lvlShawarma = 0; needsUpdate = true; }
+      if (typeof val.lvlCarWash !== 'number') { val.lvlCarWash = 0; needsUpdate = true; }
+      if (typeof val.lvlCasino !== 'number') { val.lvlCasino = 0; needsUpdate = true; }
       
-      if (needsUpdate) {
-        set(ref(db, `scores/${currentUser}`), val);
-      }
+      if (needsUpdate) set(ref(db, `scores/${currentUser}`), val);
       
       if (previousMoney > val.money && (previousMoney - val.money) > 10) {
         const stolen = previousMoney - val.money;
         triggerRobberyEffect(stolen);
+        playSound('damage');
       }
       
       myData = val;
@@ -235,6 +329,7 @@
 
     listenToLeaderboard();
     startAutoIncome();
+    scheduleGoldenBill();
   }
 
   if (currentUser) {
@@ -242,104 +337,107 @@
     startGame();
   }
 
-  function updateHUD() {
-    document.getElementById('myScore').textContent = myData.money;
-  }
+  function updateHUD() { document.getElementById('myScore').textContent = myData.money; }
 
   function updateUpgradeUI() {
     document.getElementById('clickLvlText').textContent = `Ур. ${myData.clickLvl}`;
     document.getElementById('clickCostText').textContent = getClickCost(myData.clickLvl);
     
-    document.getElementById('autoLvlText').textContent = `Ур. ${myData.autoLvl}`;
-    document.getElementById('autoIncomeText').textContent = getAutoIncome(myData.autoLvl);
-    document.getElementById('autoCostText').textContent = getAutoCost(myData.autoLvl);
+    ['shawarma', 'carwash', 'casino'].forEach(biz => {
+      const lvl = myData[`lvl${biz.charAt(0).toUpperCase() + biz.slice(1)}`];
+      document.getElementById(`${biz}LvlText`).textContent = `Ур. ${lvl}`;
+      document.getElementById(`${biz}IncomeText`).textContent = getBizIncome(biz, lvl);
+      document.getElementById(`${biz}CostText`).textContent = getBizCost(biz, lvl);
+    });
   }
 
+  // --- ПОКУПКИ ---
   window.buyClickUpgrade = function() {
+    initAudio();
     const cost = getClickCost(myData.clickLvl);
     if (myData.money < cost) return;
 
     const userRef = ref(db, `scores/${currentUser}`);
     runTransaction(userRef, (data) => {
-      if (!data) data = { money: 0, clickLvl: 1, autoLvl: 0 };
+      if (!data) data = { money: 0, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
       if (data.money >= cost) {
         data.money -= cost;
         data.clickLvl += 1;
       }
       return data;
-    }).catch(e => console.log("Ошибка покупки:", e));
+    }).then(() => playSound('buy')).catch(e => console.log(e));
   };
 
-  window.buyAutoUpgrade = function() {
-    const cost = getAutoCost(myData.autoLvl);
+  window.buyBiz = function(bizKey) {
+    initAudio();
+    const lvlKey = `lvl${bizKey.charAt(0).toUpperCase() + bizKey.slice(1)}`;
+    const cost = getBizCost(bizKey, myData[lvlKey]);
     if (myData.money < cost) return;
 
     const userRef = ref(db, `scores/${currentUser}`);
     runTransaction(userRef, (data) => {
-      if (!data) data = { money: 0, clickLvl: 1, autoLvl: 0 };
+      if (!data) data = { money: 0, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
       if (data.money >= cost) {
         data.money -= cost;
-        data.autoLvl += 1;
+        data[lvlKey] += 1;
       }
       return data;
-    }).catch(e => console.log("Ошибка покупки:", e));
+    }).then(() => playSound('buy')).catch(e => console.log(e));
   };
 
-  // --- АВТОКЛИКЕР С ВИЗУАЛЬНЫМ ЭФФЕКТОМ ---
+  // --- АВТОКЛИКЕР ---
   function startAutoIncome() {
     setInterval(() => {
-      if (!currentUser || myData.autoLvl <= 0) return;
+      if (!currentUser) return;
       
-      const income = getAutoIncome(myData.autoLvl);
-      myData.money += income;
+      let totalIncome = 0;
+      totalIncome += getBizIncome('shawarma', myData.lvlShawarma);
+      totalIncome += getBizIncome('carwash', myData.lvlCarWash);
+      totalIncome += getBizIncome('casino', myData.lvlCasino);
+
+      if (totalIncome <= 0) return;
+      
+      myData.money += totalIncome;
       previousMoney = myData.money;
-      pendingMoney += income;
+      pendingMoney += totalIncome;
       
       updateHUD();
-      
-      // Запускаем визуальный эффект, чтобы было видно, что бизнес капает
-      triggerAutoEffect(income);
+      triggerAutoEffect(totalIncome);
 
       clearTimeout(window.autoSaveTimeout);
       window.autoSaveTimeout = setTimeout(() => {
         if (pendingMoney > 0) {
           const userRef = ref(db, `scores/${currentUser}`);
           runTransaction(userRef, (data) => {
-            if (!data) data = { money: 0, clickLvl: 1, autoLvl: 0 };
+            if (!data) data = { money: 0, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
             data.money += pendingMoney;
             return data;
           });
           pendingMoney = 0;
         }
       }, 1000);
-      
     }, 1000);
   }
 
-  // Функция визуального эффекта от автокликера
   function triggerAutoEffect(amount) {
     const x = window.innerWidth / 2 + rand(-100, 100);
     const y = window.innerHeight / 2 + rand(-50, 50);
 
-    // Текст +$ (сделан чуть меньше обычного, чтобы не перекрывать клики)
     const el = document.createElement('div');
     el.className = 'txt'; el.textContent = `+$${amount}`;
     el.style.left = x + 'px'; el.style.top = y + 'px';
-    el.style.fontSize = '32px'; 
-    el.style.opacity = '0.8';
+    el.style.fontSize = '32px'; el.style.opacity = '0.8';
     fx.appendChild(el);
 
     const vx = rand(-20, 20), vy = rand(-120, -60), dur = 1200, start = performance.now();
     (function step(now) {
       const t = Math.min((now - start) / dur, 1), dt = (now - start) / 1000;
-      const dx = vx * dt;
-      const dy = vy * dt + 60 * dt * dt;
+      const dx = vx * dt; const dy = vy * dt + 60 * dt * dt;
       el.style.transform = `translate(${dx}px, ${dy}px) scale(${t < 0.1 ? 1 + t * 2 : 1.2 - t * 0.2})`;
       el.style.opacity = t > 0.5 ? 0.8 - (t - 0.5) / 0.5 : 0.8;
       t < 1 ? requestAnimationFrame(step) : el.remove();
     })(start);
 
-    // Пара купюр для антуража
     for(let i = 0; i < 3; i++) {
       const b = document.createElement('div');
       b.className = 'bill-fly'; b.textContent = '$';
@@ -350,8 +448,7 @@
       const rot = rand(-360, 360), bDur = rand(800, 1200), bStart = performance.now();
       (function step(now) {
         const t = Math.min((now - bStart) / bDur, 1), dt = (now - bStart) / 1000;
-        const dx = bvx * dt * (1 - 0.5 * t);
-        const dy = bvy * dt + 250 * dt * dt;
+        const dx = bvx * dt * (1 - 0.5 * t); const dy = bvy * dt + 250 * dt * dt;
         b.style.transform = `translate(${dx}px, ${dy}px) rotate(${rot * t}deg)`;
         b.style.opacity = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
         t < 1 ? requestAnimationFrame(step) : b.remove();
@@ -359,6 +456,107 @@
     }
   }
 
+  // --- ЗОЛОТАЯ КУПЮРА ---
+  function scheduleGoldenBill() {
+    if (goldenBillTimeout) clearTimeout(goldenBillTimeout);
+    
+    // Случайная задержка от 15 до 30 секунд
+    const delay = rand(15000, 30000);
+    goldenBillTimeout = setTimeout(spawnGoldenBill, delay);
+  }
+
+  function spawnGoldenBill() {
+    if (!currentUser) return;
+
+    const el = document.createElement('div');
+    el.className = 'golden-bill';
+    el.textContent = '$';
+
+    // Позиция в пределах экрана (не за краями)
+    const maxX = window.innerWidth - 100;
+    const maxY = window.innerHeight - 60;
+    el.style.left = rand(20, maxX) + 'px';
+    el.style.top = rand(20, maxY) + 'px';
+
+    el.onclick = (e) => {
+      e.stopPropagation(); // Чтобы не срабатывал обычный клик
+      collectGoldenBill(el);
+    };
+
+    document.body.appendChild(el);
+
+    // Удаление через 5 секунд, если не успели кликнуть
+    setTimeout(() => {
+      if (el.parentNode) el.remove();
+    }, 5000);
+
+    // Запускаем следующий таймер
+    scheduleGoldenBill();
+  }
+
+  function collectGoldenBill(el) {
+    initAudio();
+    playSound('jackpot');
+    el.remove();
+
+    const reward = 5000;
+    myData.money += reward;
+    previousMoney = myData.money;
+    updateHUD();
+
+    // Сохраняем в БД
+    const userRef = ref(db, `scores/${currentUser}`);
+    runTransaction(userRef, (data) => {
+      if (!data) data = { money: 0, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
+      data.money += reward;
+      return data;
+    });
+
+    // Красивый взрыв из золотых частиц
+    for(let i = 0; i < 30; i++) {
+      const p = document.createElement('div');
+      p.className = 'sprk';
+      p.style.background = '#ffd700';
+      p.style.boxShadow = '0 0 15px #ffd700, 0 0 30px #ffaa00';
+      p.style.width = '10px'; p.style.height = '10px';
+      
+      const rect = el.getBoundingClientRect();
+      p.style.left = (rect.left + rect.width / 2) + 'px';
+      p.style.top = (rect.top + rect.height / 2) + 'px';
+      fx.appendChild(p);
+
+      const angle = rand(0, Math.PI * 2), speed = rand(100, 400);
+      const vx = Math.cos(angle) * speed, vy = Math.sin(angle) * speed;
+      const dur = rand(600, 1200), start = performance.now();
+
+      (function step(now) {
+        const t = Math.min((now - start) / dur, 1), dt = (now - start) / 1000;
+        const dx = vx * dt; const dy = vy * dt + 300 * dt * dt;
+        p.style.transform = `translate(${dx}px, ${dy}px) scale(${1-t})`;
+        p.style.opacity = 1 - t;
+        t < 1 ? requestAnimationFrame(step) : p.remove();
+      })(start);
+    }
+
+    // Всплывающий текст
+    const rect = el.getBoundingClientRect();
+    const txt = document.createElement('div');
+    txt.className = 'txt'; txt.textContent = `+$${reward} JACKPOT!`;
+    txt.style.color = '#ffd700';
+    txt.style.textShadow = '-4px -4px 0 #b87a00, 4px -4px 0 #b87a00, -4px 4px 0 #b87a00, 4px 4px 0 #b87a00, 6px 6px 0 #000';
+    txt.style.left = rect.left + 'px'; txt.style.top = rect.top + 'px';
+    fx.appendChild(txt);
+
+    const start = performance.now();
+    (function step(now) {
+      const t = Math.min((now - start) / 1500, 1);
+      txt.style.transform = `translate(0, ${-100 * t}px) scale(${1 + t})`;
+      txt.style.opacity = 1 - t;
+      t < 1 ? requestAnimationFrame(step) : txt.remove();
+    })(start);
+  }
+
+  // --- ОГРАБЛЕНИЕ ---
   window.attackUser = async function(targetName) {
     if (targetName === currentUser) return;
     const now = Date.now();
@@ -370,9 +568,7 @@
       let stolenAmount = 0;
 
       await runTransaction(targetRef, (targetData) => {
-        if (typeof targetData === 'number') {
-           targetData = { money: targetData, clickLvl: 1, autoLvl: 0 };
-        }
+        if (typeof targetData === 'number') targetData = { money: targetData, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
         if (!targetData || typeof targetData.money !== 'number') return targetData;
         
         let steal = Math.floor(targetData.money * 0.1);
@@ -385,11 +581,12 @@
       if (stolenAmount > 0) {
         const myRef = ref(db, `scores/${currentUser}`);
         await runTransaction(myRef, (data) => {
-          if (!data) data = { money: 0, clickLvl: 1, autoLvl: 0 };
+          if (!data) data = { money: 0, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
           data.money += stolenAmount;
           return data;
         });
         triggerHeistSuccessEffect(stolenAmount);
+        playSound('jackpot'); // Звук успеха
       }
     } catch (e) {
       console.error("Ошибка ограбления:", e);
@@ -416,9 +613,7 @@
         const el = document.createElement('div');
         const isMe = player.name === currentUser;
         el.className = `lb-item ${index === 0 ? 'top1' : index === 1 ? 'top2' : index === 2 ? 'top3' : ''} ${isMe ? 'me' : ''}`;
-        
         if (!isMe) el.onclick = () => attackUser(player.name);
-
         el.innerHTML = `<span>${index + 1}. ${player.name}</span> <span>$${player.money}</span>`;
         lbList.appendChild(el);
       });
@@ -446,7 +641,6 @@
     document.body.classList.add('attacked');
     setTimeout(() => document.body.classList.remove('attacked'), 500);
     const x = window.innerWidth / 2, y = window.innerHeight / 2;
-    
     const el = document.createElement('div');
     el.className = 'txt txt-dmg'; el.textContent = `-$${amount}`;
     el.style.left = x + 'px'; el.style.top = y + 'px';
@@ -464,7 +658,6 @@
 
   function triggerHeistSuccessEffect(amount) {
     const x = window.innerWidth / 2, y = window.innerHeight / 2;
-    
     if (amount > 0) {
       const el = document.createElement('div');
       el.className = 'txt'; el.textContent = `+$${amount}`;
@@ -481,7 +674,6 @@
         t < 1 ? requestAnimationFrame(step) : el.remove();
       })(start);
     }
-    
     for (let i = 0; i < 15; i++) {
       const b = document.createElement('div');
       b.className = 'bill-fly'; b.textContent = '$';
@@ -492,7 +684,7 @@
       const rot = rand(-720, 720), bDur = rand(1000, 1500), bStart = performance.now();
       (function step(now) {
         const t = Math.min((now - bStart) / bDur, 1), dt = (now - bStart) / 1000;
-        const dx = vx * dt * (1 - 0.5 * t), dy = vy * dt + 400 * dt * dt;
+        const dx = vx * dt * (1 - 0.5 * t); const dy = vy * dt + 400 * dt * dt;
         b.style.transform = `translate(${dx}px, ${dy}px) rotate(${rot * t}deg)`;
         b.style.opacity = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
         t < 1 ? requestAnimationFrame(step) : b.remove();
@@ -511,7 +703,7 @@
       const rot = rand(-720, 720), dur = rand(1200, 1800), start = performance.now();
       (function step(now) {
         const t = Math.min((now - start) / dur, 1), dt = (now - start) / 1000;
-        const dx = vx * dt * (1 - 0.5 * t), dy = vy * dt + 350 * dt * dt;
+        const dx = vx * dt * (1 - 0.5 * t); const dy = vy * dt + 350 * dt * dt;
         el.style.transform = `translate(${dx}px, ${dy}px) rotate(${rot * t}deg)`;
         el.style.opacity = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
         t < 1 ? requestAnimationFrame(step) : el.remove();
@@ -527,7 +719,7 @@
     const vx = rand(-40, 40), vy = rand(-200, -120), dur = 1300, start = performance.now();
     (function step(now) {
       const t = Math.min((now - start) / dur, 1), dt = (now - start) / 1000;
-      const dx = vx * dt * (1 - 0.4 * t), dy = vy * dt + 180 * dt * dt;
+      const dx = vx * dt * (1 - 0.4 * t); const dy = vy * dt + 180 * dt * dt;
       el.style.transform = `translate(${dx}px, ${dy}px) scale(${t < 0.1 ? 1 + t * 3 : 1.3 - t * 0.3})`;
       el.style.opacity = t > 0.6 ? 1 - (t - 0.6) / 0.4 : 1;
       t < 1 ? requestAnimationFrame(step) : el.remove();
@@ -545,7 +737,7 @@
       const dur = rand(400, 700), start = performance.now();
       (function step(now) {
         const t = Math.min((now - start) / dur, 1), dt = (now - start) / 1000;
-        const dx = vx * dt, dy = vy * dt + 350 * dt * dt;
+        const dx = vx * dt; const dy = vy * dt + 350 * dt * dt;
         el.style.transform = `translate(${dx}px, ${dy}px) scale(${1 - t})`;
         el.style.opacity = 1 - t;
         t < 1 ? requestAnimationFrame(step) : el.remove();
@@ -555,9 +747,10 @@
 
   function triggerEffect(x, y) {
     if (!currentUser) return; 
-    
+    initAudio(); // Разблокировка звука на мобилках
+    playSound('click');
+
     const gain = getClickPower(myData.clickLvl);
-    
     myData.money += gain;
     previousMoney = myData.money;
     pendingMoney += gain;
@@ -568,7 +761,7 @@
       if (pendingMoney > 0) {
         const userRef = ref(db, `scores/${currentUser}`);
         runTransaction(userRef, (data) => {
-          if (!data) data = { money: 0, clickLvl: 1, autoLvl: 0 };
+          if (!data) data = { money: 0, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
           data.money += pendingMoney;
           return data;
         }).catch(e => console.log("Ошибка записи:", e));
@@ -584,7 +777,7 @@
   let lastX = 0, lastY = 0;
 
   document.body.addEventListener('pointerdown', (e) => {
-    if (!currentUser || e.target.closest('.leaderboard') || e.target.closest('.upgrade-panel')) return;
+    if (!currentUser || e.target.closest('.leaderboard') || e.target.closest('.upgrade-panel') || e.target.closest('.golden-bill')) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return; 
 
     lastX = e.clientX;
@@ -592,23 +785,15 @@
     triggerEffect(lastX, lastY);
 
     if (holdTimer) clearInterval(holdTimer);
-    holdTimer = setInterval(() => {
-      triggerEffect(lastX, lastY);
-    }, 150);
+    holdTimer = setInterval(() => { triggerEffect(lastX, lastY); }, 150);
   });
 
   document.body.addEventListener('pointermove', (e) => {
-    if (holdTimer) {
-      lastX = e.clientX;
-      lastY = e.clientY;
-    }
+    if (holdTimer) { lastX = e.clientX; lastY = e.clientY; }
   });
 
   const stopHold = () => {
-    if (holdTimer) {
-      clearInterval(holdTimer);
-      holdTimer = null;
-    }
+    if (holdTimer) { clearInterval(holdTimer); holdTimer = null; }
   };
 
   window.addEventListener('pointerup', stopHold);
