@@ -98,12 +98,10 @@
   @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
   @keyframes spin { 0% { transform: rotateX(15deg) rotateY(0deg) rotateZ(-10deg); } 100% { transform: rotateX(15deg) rotateY(360deg) rotateZ(-10deg); } }
 
-  /* ЗОЛОТАЯ КУПЮРА (ИВЕНТ) */
   .golden-bill {
     position: absolute; width: 80px; height: 45px;
     background: linear-gradient(135deg, #ffd700, #ffaa00);
-    border: 2px solid #fff;
-    border-radius: 6px;
+    border: 2px solid #fff; border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
     font: 900 24px Impact, sans-serif; color: #fff;
     text-shadow: 0 0 10px #fff, 2px 2px 0 #b87a00;
@@ -196,7 +194,7 @@
 
   let currentUser = localStorage.getItem('gta_user') || null;
   
-  // Структура профиля
+  // Четкие ключи без путаницы в регистре
   let myData = { money: 0, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
   let previousMoney = 0;
   
@@ -209,19 +207,18 @@
   const fx = document.getElementById('fx');
   const rand = (a, b) => Math.random() * (b - a) + a;
 
-  // --- НАСТРОЙКИ БИЗНЕСОВ ---
   const BIZ = {
-    shawarma: { baseCost: 1000, baseIncome: 10, mult: 1.6 },
-    carwash: { baseCost: 10000, baseIncome: 50, mult: 1.6 },
-    casino: { baseCost: 100000, baseIncome: 500, mult: 1.6 }
+    shawarma: { baseCost: 1000, baseIncome: 10, mult: 1.6, key: 'lvlShawarma' },
+    carwash: { baseCost: 10000, baseIncome: 50, mult: 1.6, key: 'lvlCarWash' },
+    casino: { baseCost: 100000, baseIncome: 500, mult: 1.6, key: 'lvlCasino' }
   };
 
-  const getClickPower = (lvl) => Math.floor(rand(10, 50) * (1 + (lvl - 1) * 0.5));
-  const getClickCost = (lvl) => Math.floor(500 * Math.pow(1.6, lvl - 1));
-  const getBizCost = (bizKey, lvl) => Math.floor(BIZ[bizKey].baseCost * Math.pow(BIZ[bizKey].mult, lvl));
-  const getBizIncome = (bizKey, lvl) => lvl * BIZ[bizKey].baseIncome;
+  const getClickPower = (lvl) => Math.floor(rand(10, 50) * (1 + ((lvl || 1) - 1) * 0.5));
+  const getClickCost = (lvl) => Math.floor(500 * Math.pow(1.6, (lvl || 1) - 1));
+  const getBizCost = (bizKey, lvl) => Math.floor(BIZ[bizKey].baseCost * Math.pow(BIZ[bizKey].mult, lvl || 0));
+  const getBizIncome = (bizKey, lvl) => (lvl || 0) * BIZ[bizKey].baseIncome;
 
-  // --- ЗВУКИ (Web Audio API) ---
+  // --- ЗВУКИ ---
   let audioCtx;
   function initAudio() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -233,7 +230,6 @@
     const gain = audioCtx.createGain();
     osc.connect(gain);
     gain.connect(audioCtx.destination);
-
     const now = audioCtx.currentTime;
 
     if (type === 'click') {
@@ -243,24 +239,21 @@
       gain.gain.setValueAtTime(0.1, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
       osc.start(now); osc.stop(now + 0.1);
-    } 
-    else if (type === 'buy') {
+    } else if (type === 'buy') {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(1200, now);
       osc.frequency.setValueAtTime(1600, now + 0.1);
       gain.gain.setValueAtTime(0.1, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
       osc.start(now); osc.stop(now + 0.3);
-    } 
-    else if (type === 'damage') {
+    } else if (type === 'damage') {
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(150, now);
       osc.frequency.linearRampToValueAtTime(100, now + 0.3);
       gain.gain.setValueAtTime(0.1, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
       osc.start(now); osc.stop(now + 0.3);
-    } 
-    else if (type === 'jackpot') {
+    } else if (type === 'jackpot') {
       osc.type = 'square';
       osc.frequency.setValueAtTime(400, now);
       osc.frequency.setValueAtTime(600, now + 0.1);
@@ -273,7 +266,7 @@
   }
 
   window.login = function() {
-    initAudio(); // Инициализируем звук по первому клику
+    initAudio();
     const name = document.getElementById('usernameInput').value.trim();
     if (name.length < 2) return alert("Никнейм слишком короткий!");
     currentUser = name;
@@ -291,26 +284,32 @@
       let val = snapshot.val();
       let needsUpdate = false;
 
-      // Миграция старого формата
+      // Исцеление базы от старых багов и undefined
       if (typeof val === 'number') {
         val = { money: val, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
         needsUpdate = true;
-      } else if (!val || typeof val.money !== 'number') {
+      } else if (!val || typeof val.money !== 'number' || isNaN(val.money)) {
         val = { money: 0, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
         needsUpdate = true;
       }
 
-      // Миграция autoLvl в lvlShawarma
       if (val.autoLvl !== undefined) {
-        val.lvlShawarma = val.autoLvl;
+        val.lvlShawarma = (val.lvlShawarma || 0) + (val.autoLvl || 0);
         delete val.autoLvl;
         needsUpdate = true;
       }
 
-      if (typeof val.clickLvl !== 'number') { val.clickLvl = 1; needsUpdate = true; }
-      if (typeof val.lvlShawarma !== 'number') { val.lvlShawarma = 0; needsUpdate = true; }
-      if (typeof val.lvlCarWash !== 'number') { val.lvlCarWash = 0; needsUpdate = true; }
-      if (typeof val.lvlCasino !== 'number') { val.lvlCasino = 0; needsUpdate = true; }
+      // Починка сломанного ключа с маленькой 'w'
+      if (val.lvlCarwash !== undefined) {
+        val.lvlCarWash = (val.lvlCarWash || 0) + (val.lvlCarwash || 0);
+        delete val.lvlCarwash;
+        needsUpdate = true;
+      }
+
+      if (typeof val.clickLvl !== 'number' || isNaN(val.clickLvl)) { val.clickLvl = 1; needsUpdate = true; }
+      if (typeof val.lvlShawarma !== 'number' || isNaN(val.lvlShawarma)) { val.lvlShawarma = 0; needsUpdate = true; }
+      if (typeof val.lvlCarWash !== 'number' || isNaN(val.lvlCarWash)) { val.lvlCarWash = 0; needsUpdate = true; }
+      if (typeof val.lvlCasino !== 'number' || isNaN(val.lvlCasino)) { val.lvlCasino = 0; needsUpdate = true; }
       
       if (needsUpdate) set(ref(db, `scores/${currentUser}`), val);
       
@@ -344,14 +343,14 @@
     document.getElementById('clickCostText').textContent = getClickCost(myData.clickLvl);
     
     ['shawarma', 'carwash', 'casino'].forEach(biz => {
-      const lvl = myData[`lvl${biz.charAt(0).toUpperCase() + biz.slice(1)}`];
+      const dbKey = BIZ[biz].key; // Используем правильные ключи
+      const lvl = myData[dbKey] || 0;
       document.getElementById(`${biz}LvlText`).textContent = `Ур. ${lvl}`;
       document.getElementById(`${biz}IncomeText`).textContent = getBizIncome(biz, lvl);
       document.getElementById(`${biz}CostText`).textContent = getBizCost(biz, lvl);
     });
   }
 
-  // --- ПОКУПКИ ---
   window.buyClickUpgrade = function() {
     initAudio();
     const cost = getClickCost(myData.clickLvl);
@@ -360,6 +359,7 @@
     const userRef = ref(db, `scores/${currentUser}`);
     runTransaction(userRef, (data) => {
       if (!data) data = { money: 0, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
+      if (typeof data.money !== 'number' || isNaN(data.money)) data.money = 0;
       if (data.money >= cost) {
         data.money -= cost;
         data.clickLvl += 1;
@@ -370,22 +370,24 @@
 
   window.buyBiz = function(bizKey) {
     initAudio();
-    const lvlKey = `lvl${bizKey.charAt(0).toUpperCase() + bizKey.slice(1)}`;
-    const cost = getBizCost(bizKey, myData[lvlKey]);
+    const dbKey = BIZ[bizKey].key;
+    const cost = getBizCost(bizKey, myData[dbKey] || 0);
     if (myData.money < cost) return;
 
     const userRef = ref(db, `scores/${currentUser}`);
     runTransaction(userRef, (data) => {
       if (!data) data = { money: 0, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
+      if (typeof data.money !== 'number' || isNaN(data.money)) data.money = 0;
+      if (typeof data[dbKey] !== 'number' || isNaN(data[dbKey])) data[dbKey] = 0;
+
       if (data.money >= cost) {
         data.money -= cost;
-        data[lvlKey] += 1;
+        data[dbKey] += 1;
       }
       return data;
     }).then(() => playSound('buy')).catch(e => console.log(e));
   };
 
-  // --- АВТОКЛИКЕР ---
   function startAutoIncome() {
     setInterval(() => {
       if (!currentUser) return;
@@ -395,7 +397,7 @@
       totalIncome += getBizIncome('carwash', myData.lvlCarWash);
       totalIncome += getBizIncome('casino', myData.lvlCasino);
 
-      if (totalIncome <= 0) return;
+      if (totalIncome <= 0 || isNaN(totalIncome)) return;
       
       myData.money += totalIncome;
       previousMoney = myData.money;
@@ -406,10 +408,11 @@
 
       clearTimeout(window.autoSaveTimeout);
       window.autoSaveTimeout = setTimeout(() => {
-        if (pendingMoney > 0) {
+        if (pendingMoney > 0 && !isNaN(pendingMoney)) {
           const userRef = ref(db, `scores/${currentUser}`);
           runTransaction(userRef, (data) => {
             if (!data) data = { money: 0, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
+            if (typeof data.money !== 'number' || isNaN(data.money)) data.money = 0;
             data.money += pendingMoney;
             return data;
           });
@@ -459,8 +462,6 @@
   // --- ЗОЛОТАЯ КУПЮРА ---
   function scheduleGoldenBill() {
     if (goldenBillTimeout) clearTimeout(goldenBillTimeout);
-    
-    // Случайная задержка от 15 до 30 секунд
     const delay = rand(15000, 30000);
     goldenBillTimeout = setTimeout(spawnGoldenBill, delay);
   }
@@ -472,25 +473,18 @@
     el.className = 'golden-bill';
     el.textContent = '$';
 
-    // Позиция в пределах экрана (не за краями)
     const maxX = window.innerWidth - 100;
     const maxY = window.innerHeight - 60;
     el.style.left = rand(20, maxX) + 'px';
     el.style.top = rand(20, maxY) + 'px';
 
     el.onclick = (e) => {
-      e.stopPropagation(); // Чтобы не срабатывал обычный клик
+      e.stopPropagation();
       collectGoldenBill(el);
     };
 
     document.body.appendChild(el);
-
-    // Удаление через 5 секунд, если не успели кликнуть
-    setTimeout(() => {
-      if (el.parentNode) el.remove();
-    }, 5000);
-
-    // Запускаем следующий таймер
+    setTimeout(() => { if (el.parentNode) el.remove(); }, 5000);
     scheduleGoldenBill();
   }
 
@@ -504,15 +498,14 @@
     previousMoney = myData.money;
     updateHUD();
 
-    // Сохраняем в БД
     const userRef = ref(db, `scores/${currentUser}`);
     runTransaction(userRef, (data) => {
       if (!data) data = { money: 0, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
+      if (typeof data.money !== 'number' || isNaN(data.money)) data.money = 0;
       data.money += reward;
       return data;
     });
 
-    // Красивый взрыв из золотых частиц
     for(let i = 0; i < 30; i++) {
       const p = document.createElement('div');
       p.className = 'sprk';
@@ -538,7 +531,6 @@
       })(start);
     }
 
-    // Всплывающий текст
     const rect = el.getBoundingClientRect();
     const txt = document.createElement('div');
     txt.className = 'txt'; txt.textContent = `+$${reward} JACKPOT!`;
@@ -569,7 +561,7 @@
 
       await runTransaction(targetRef, (targetData) => {
         if (typeof targetData === 'number') targetData = { money: targetData, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
-        if (!targetData || typeof targetData.money !== 'number') return targetData;
+        if (!targetData || typeof targetData.money !== 'number' || isNaN(targetData.money)) return targetData;
         
         let steal = Math.floor(targetData.money * 0.1);
         steal = Math.max(50, Math.min(steal, 1000, targetData.money));
@@ -582,11 +574,12 @@
         const myRef = ref(db, `scores/${currentUser}`);
         await runTransaction(myRef, (data) => {
           if (!data) data = { money: 0, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
+          if (typeof data.money !== 'number' || isNaN(data.money)) data.money = 0;
           data.money += stolenAmount;
           return data;
         });
         triggerHeistSuccessEffect(stolenAmount);
-        playSound('jackpot'); // Звук успеха
+        playSound('jackpot');
       }
     } catch (e) {
       console.error("Ошибка ограбления:", e);
@@ -602,8 +595,8 @@
 
       const sorted = Object.entries(data)
         .map(([name, val]) => {
-          if (typeof val === 'number') return { name, money: val };
-          if (val && typeof val.money === 'number') return { name, money: val.money };
+          if (typeof val === 'number') return { name, money: isNaN(val) ? 0 : val };
+          if (val && typeof val.money === 'number' && !isNaN(val.money)) return { name, money: val.money };
           return { name, money: 0 };
         })
         .sort((a, b) => b.money - a.money)
@@ -747,7 +740,7 @@
 
   function triggerEffect(x, y) {
     if (!currentUser) return; 
-    initAudio(); // Разблокировка звука на мобилках
+    initAudio();
     playSound('click');
 
     const gain = getClickPower(myData.clickLvl);
@@ -758,10 +751,11 @@
     
     clearTimeout(window.saveScoreTimeout);
     window.saveScoreTimeout = setTimeout(() => {
-      if (pendingMoney > 0) {
+      if (pendingMoney > 0 && !isNaN(pendingMoney)) {
         const userRef = ref(db, `scores/${currentUser}`);
         runTransaction(userRef, (data) => {
           if (!data) data = { money: 0, clickLvl: 1, lvlShawarma: 0, lvlCarWash: 0, lvlCasino: 0 };
+          if (typeof data.money !== 'number' || isNaN(data.money)) data.money = 0;
           data.money += pendingMoney;
           return data;
         }).catch(e => console.log("Ошибка записи:", e));
